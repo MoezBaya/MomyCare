@@ -6,21 +6,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.*;
-
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
+@Table(name = "dossiers_medicaux")
+@Getter @Setter @AllArgsConstructor @NoArgsConstructor @Builder
 public class DossierMedicale {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long numeroDossier;
+    private Long id;
 
     private String antecedents;
 
@@ -28,10 +25,15 @@ public class DossierMedicale {
 
     private String maladieChronique;
 
-    private LocalDate dateDeGrosses ;
+    private LocalDate dateDeGrosses;
+
+    // ✅ Ajouté — requis par DossierMedicalService
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "derniere_modification_par_id")
+    private Gynecologue derniereModificationPar;
 
     @CreationTimestamp
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
@@ -42,8 +44,7 @@ public class DossierMedicale {
     @JoinColumn(name = "patiente_id", nullable = false, unique = true)
     private Patiente patiente;
 
-    @OneToMany(mappedBy = "dossierMedicale", cascade = CascadeType.ALL , orphanRemoval = true)
+    @Builder.Default
+    @OneToMany(mappedBy = "dossierMedicale", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Consultation> consultations = new ArrayList<>();
-
-
 }

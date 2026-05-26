@@ -2,37 +2,42 @@ package com.example.MomyCare.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "relations")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class Demande {
+public class Relation {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
         @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "patiente_id")
         private Patiente patiente;
 
         @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "gynecologue_id")
         private Gynecologue gynecologue;
 
         @Enumerated(EnumType.STRING)
-        private DemandeStatus status;
+        private StatutRelation status ;
 
+        private LocalDate dateDebut;
+
+        private LocalDate dateFin;
+
+        @CreationTimestamp
+        @Column(updatable = false)
         private LocalDateTime createdAt;
 
-        @PrePersist
-        public void ajouterDate() {
-                this.createdAt = LocalDateTime.now();
-        }
+        @UpdateTimestamp
+        private LocalDateTime updatedAt;
 }

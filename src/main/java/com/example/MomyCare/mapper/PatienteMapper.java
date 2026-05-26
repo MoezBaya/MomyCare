@@ -51,7 +51,7 @@ public interface PatienteMapper {
             return null;
         }
 
-        return patiente.getDossierMedicale().getNumeroDossier();
+        return patiente.getDossierMedicale().getId();
     }
 
     List<PatienteResponseDTO> toDTOList(List<Patiente> entity);

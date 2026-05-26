@@ -11,12 +11,13 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class DossierMedicaleResponseDTO {
 
-    private Long numeroDossier;
+    private Long id;
 
     private String antecedents;
     private String traitement;
     private String maladieChronique;
     private LocalDate dateDeGrosses;
+    private String modifiePar;
 
     private Long patienteId;
 }

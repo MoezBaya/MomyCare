@@ -27,6 +27,19 @@ public interface GynecologueMapper {
         @Mapping(source = "disponibilites", target = "disponibiliteIds")
         GynecologueResponseDTO toDto(Gynecologue gynecologue);
 
+        // ===== TO DTO LIST
+         @Mapping(source = "user.nom" , target = "nom")
+         @Mapping(source = "user.prenom" , target ="prenom")
+         @Mapping(source = "user.adresse" , target ="adresse")
+         @Mapping(source = "user.numeroTelephone" , target = "numeroTelephone")
+         @Mapping(source = "user.ville" , target = "ville")
+         @Mapping(source = "user.dateDeNaissance" , target = "dateDeNaissance" )
+         @Mapping(source = "user.email", target = "email")
+
+         @Mapping(source = "rendezVousList", target = "rendezVousIds")
+         @Mapping(source = "disponibilites", target = "disponibiliteIds")
+         List<GynecologueResponseDTO> toDtosList(List<Gynecologue> gynecologues);
+
 
         // ===== TO ENTITY =====
         @Mapping(target = "id", ignore = true)
@@ -46,7 +59,7 @@ public interface GynecologueMapper {
 
         @Mapping(target = "rendezVousList", ignore = true)
         @Mapping(target = "disponibilites", ignore = true)
-        @Mapping(target = "demande", ignore = true)
+        @Mapping(target = "relations", ignore = true)
         @Mapping(target = "patiente", ignore = true)
 
         Gynecologue toEntity(GynecologueSignupRequest dto);

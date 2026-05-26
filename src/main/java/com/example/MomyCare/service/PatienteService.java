@@ -1,16 +1,11 @@
 package com.example.MomyCare.service;
 
-import com.example.MomyCare.dao.GynecologueRepository;
 import com.example.MomyCare.dao.PatienteRepository;
 import com.example.MomyCare.dao.UserRepository;
-import com.example.MomyCare.dto.gynecologue.GynecologueResponseDTO;
 import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
 import com.example.MomyCare.dto.patiente.PatienteResponseDTO;
-import com.example.MomyCare.exception.ResourceNotFoundException;
-import com.example.MomyCare.mapper.GynecologueMapper;
 import com.example.MomyCare.mapper.PatienteMapper;
 import com.example.MomyCare.mapper.UserMapper;
-import com.example.MomyCare.model.Gynecologue;
 import com.example.MomyCare.model.Patiente;
 import com.example.MomyCare.model.User;
 import com.example.MomyCare.security.service.UserDetailsImpl;
@@ -27,8 +22,6 @@ public class PatienteService {
     private final PatienteMapper patienteMapper;
     private final UserMapper userMapper;
     private final UserRepository userRepository;
-    private final GynecologueRepository gynecologueRepository;
-    private final GynecologueMapper gynecologueMapper;
 
     public PatienteResponseDTO getMyProfile(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
@@ -55,12 +48,5 @@ public class PatienteService {
         userRepository.save(user);
         patienteRepository.save(patiente);
         return patienteMapper.toDto(patiente);
-    }
-
-    public GynecologueResponseDTO getGynecologue(Long id) {
-        Gynecologue gynecologue = gynecologueRepository.findByUserId(id).orElseThrow(
-                () -> new ResourceNotFoundException("Gynecologue not found")
-        ) ;
-        return gynecologueMapper.toDto(gynecologue);
     }
 }

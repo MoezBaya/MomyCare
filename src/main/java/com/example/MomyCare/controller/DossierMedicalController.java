@@ -4,57 +4,56 @@ import com.example.MomyCare.dto.DossierMedicale.CreateDossierMedicaleDTO;
 import com.example.MomyCare.dto.DossierMedicale.DossierMedicaleResponseDTO;
 import com.example.MomyCare.service.DossierMedicalService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/dossiers")
 @RequiredArgsConstructor
 public class DossierMedicalController {
 
-    private final DossierMedicalService service;
+    private final DossierMedicalService dossierService;
 
-    @PostMapping("/patiente/{patienteId}/dossiers")
+
+    @PostMapping("/patiente/{patienteId}")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
-    public DossierMedicaleResponseDTO create(@RequestBody CreateDossierMedicaleDTO dto,
-                                             @PathVariable Long patienteId,
-                                             Authentication auth) {
-        System.out.println("Authentication: " + auth);
-        if (auth != null) {
-            System.out.println("Principal: " + auth.getPrincipal());
-            System.out.println("Authorities: " + auth.getAuthorities());
-        }
-        return service.createForPatiente(patienteId , dto);
+    public ResponseEntity<DossierMedicaleResponseDTO> create(
+            Authentication auth,
+            @PathVariable Long patienteId,
+            @RequestBody CreateDossierMedicaleDTO dto) {
+
+        DossierMedicaleResponseDTO response = dossierService.createForPatiente(auth, patienteId, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-
-    @PutMapping("/patiente/{patienteId}/dossiers")
-    @PreAuthorize("hasRole('GYNECOLOGUE') ")
-    public DossierMedicaleResponseDTO update(@PathVariable Long patienteId,
-                                     @RequestBody CreateDossierMedicaleDTO dto) {
-        return service.update(patienteId, dto);
-    }
-
-    //
-    @GetMapping("/dossiers")
+    @GetMapping("/patiente/{patienteId}")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
-    public List<DossierMedicaleResponseDTO> getAll() {
-        return service.getAll();
+    public ResponseEntity<DossierMedicaleResponseDTO> getByPatienteId(
+            Authentication auth,
+            @PathVariable Long patienteId) {
+
+        return ResponseEntity.ok(dossierService.getByPatienteId(auth, patienteId));
     }
 
-    //
-    @GetMapping("/patiente/{patienteId}/dossiers")
-    @PreAuthorize("hasRole('GYNECOLOGUE') ")
-    public DossierMedicaleResponseDTO getByIPatientd(@PathVariable Long patienteId) {
-        return service.getByPatientId(patienteId);
+    @PutMapping("/patiente/{patienteId}")
+    @PreAuthorize("hasRole('GYNECOLOGUE')")
+    public ResponseEntity<DossierMedicaleResponseDTO> update(
+            Authentication auth,
+            @PathVariable Long patienteId,
+            @RequestBody CreateDossierMedicaleDTO dto) {
+
+        return ResponseEntity.ok(dossierService.update(auth, patienteId, dto));
     }
 
-    // PATIENTE
-    @GetMapping("/dossiers/me")
+    @GetMapping("/mon-dossier")
     @PreAuthorize("hasRole('PATIENTE')")
-    public DossierMedicaleResponseDTO getMyDossier(Authentication auth) {
-        return service.getMyDossier(auth);
+    public ResponseEntity<DossierMedicaleResponseDTO> getMyDossier(Authentication auth) {
+        return ResponseEntity.ok(dossierService.getMyDossier(auth));
     }
+
+
 }
