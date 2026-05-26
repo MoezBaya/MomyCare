@@ -42,7 +42,7 @@ public class Gynecologue  {
     private User user;
 
     @OneToMany(mappedBy = "gynecologue" , cascade = CascadeType.ALL , orphanRemoval = true)
-    private List<Demande> demande = new ArrayList<>();
+    private List<Relation> relations = new ArrayList<>();
 
     @OneToMany(mappedBy = "gynecologue" ,cascade = CascadeType.ALL , orphanRemoval = true)
     private List<Patiente> patiente = new ArrayList<>();

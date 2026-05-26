@@ -8,7 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface GynecologueRepository extends JpaRepository<Gynecologue, Long> {
-    boolean existsByUserId(Long id);
-
-    Optional<Gynecologue> findByUserId(Long id);
+    Optional<Gynecologue> findByUser_Id(Long userId);
 }

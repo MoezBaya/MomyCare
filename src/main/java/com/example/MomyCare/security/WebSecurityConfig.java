@@ -60,32 +60,44 @@ public class WebSecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/public/**",
-                                "/api/image/**",
-                                "/error",
-                                "/h2-console/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
+                                // PUBLIC
+                                .requestMatchers(
+                                        "/api/auth/**",
+                                        "/api/public/**",
+                                        "/api/image/**",
+                                        "/error",
+                                        "/h2-console/**",
+                                        "/v3/api-docs/**",
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html"
+                                ).permitAll()
 
-                        // Patiente
-                        .requestMatchers(
-                                "/api/dossiers/me",
-                                "/api/patiente/**")
-                        .hasRole("PATIENTE")
+                                // PATIENTE
+                                .requestMatchers(
+                                        "/api/dossiers/mon-dossier",
+                                        "/api/auth/**",
+                                        "/api/patiente/**",
+                                        "/api/relations/follow/**",
+                                        "/api/relations/mes-relations"
+                                ).hasRole("PATIENTE")
 
-                        // Gynécologue + Admin
-                        .requestMatchers(
-                                "/api/dossiers/patiente/**",
-                                "/api/dossiers/**"
-                        ).hasAnyRole("GYNECOLOGUE", "ADMIN")
+                                // GYNECO
+                                .requestMatchers(
+                                        "/api/auth/**",
+                                        "/api/dossiers/patiente/**",
+                                        "/api/relations/demandes",
+                                        "/api/relations/*/repondre",
+                                        "/api/consultations/**"
+                                ).hasRole("GYNECOLOGUE")
 
-                        .anyRequest().authenticated()
-                )
+                                // ADMIN
+                                .requestMatchers(
+                                        "/api/admin/**"
+                                ).hasRole("ADMIN")
+
+                                .anyRequest().authenticated()
+                        )
+
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers

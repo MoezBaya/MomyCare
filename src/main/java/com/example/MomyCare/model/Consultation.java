@@ -30,15 +30,15 @@ public class Consultation {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
     @Column(nullable = false)
-    private double tension;
+    private Double tension;
     @Column(nullable = false)
-    private int pouls;
+    private Integer pouls;
     @Column(nullable = false)
-    private double saturationOxygene;
+    private Double saturationOxygene;
     @Column(nullable = false)
-    private double temperature;
+    private Double temperature;
 
-    private int poulsBebe;
+    private Integer poulsBebe;
 
     @ManyToOne
     @JoinColumn(name = "dossier_medicale_id")

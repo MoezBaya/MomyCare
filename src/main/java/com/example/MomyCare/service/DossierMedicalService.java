@@ -2,11 +2,12 @@ package com.example.MomyCare.service;
 
 import com.example.MomyCare.dao.DossierMedicaleRepository;
 import com.example.MomyCare.dao.PatienteRepository;
+import com.example.MomyCare.dao.GynecologueRepository;
+import com.example.MomyCare.dao.RelationRepository;
 import com.example.MomyCare.dto.DossierMedicale.CreateDossierMedicaleDTO;
 import com.example.MomyCare.dto.DossierMedicale.DossierMedicaleResponseDTO;
 import com.example.MomyCare.mapper.DossierMedicalMapper;
-import com.example.MomyCare.model.DossierMedicale;
-import com.example.MomyCare.model.Patiente;
+import com.example.MomyCare.model.*;
 import com.example.MomyCare.security.service.UserDetailsImpl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -23,65 +24,114 @@ public class DossierMedicalService {
 
     private final DossierMedicaleRepository dossierRepo;
     private final PatienteRepository patienteRepo;
+    private final GynecologueRepository gynecologueRepo;
+    private final RelationRepository relationRepo;
     private final DossierMedicalMapper mapper;
 
-    // CREATE
     @Transactional
-    public DossierMedicaleResponseDTO createForPatiente(Long patienteId, CreateDossierMedicaleDTO dto) {
+    public DossierMedicaleResponseDTO createForPatiente(
+            Authentication auth, Long patienteId, CreateDossierMedicaleDTO dto) {
+
+        Gynecologue gyneco = getGyneco(auth);
+        checkRelationActive(patienteId, gyneco.getId());
 
         Patiente patiente = patienteRepo.findById(patienteId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patiente not found"
-                ));
+                        HttpStatus.NOT_FOUND, "Patiente non trouvée"));
 
         if (patiente.getDossierMedicale() != null) {
             throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Dossier already exists for this patiente"
-            );
+                    HttpStatus.CONFLICT, "Dossier déjà existant pour cette patiente");
         }
 
         DossierMedicale dossier = mapper.toEntity(dto);
         dossier.setPatiente(patiente);
+        dossier.setDerniereModificationPar(gyneco);
 
         return mapper.toDto(dossierRepo.save(dossier));
     }
 
-    // GET ALL
-    public List<DossierMedicaleResponseDTO> getAll() {
-        return mapper.toDtoList(dossierRepo.findAll());
-    }
 
+    @Transactional
+    public DossierMedicaleResponseDTO getByPatienteId(
+            Authentication auth, Long patienteId) {
 
-    public DossierMedicaleResponseDTO getByPatientId(Long patientId) {
-        Patiente p = patienteRepo.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patiente not found"));
+        Gynecologue gyneco = getGyneco(auth);
+        checkRelationActive(patienteId, gyneco.getId());
 
-        if (p.getDossierMedicale() == null) {
-            throw new RuntimeException("Dossier not found");
+        Patiente patiente = patienteRepo.findById(patienteId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Patiente non trouvée"));
+
+        if (patiente.getDossierMedicale() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Aucun dossier pour cette patiente");
         }
 
-        return mapper.toDto(p.getDossierMedicale());
+        return mapper.toDto(patiente.getDossierMedicale());
     }
 
-    // UPDATE
-    public DossierMedicaleResponseDTO update(Long id, CreateDossierMedicaleDTO dto) {
 
-        DossierMedicale dossier = dossierRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Dossier not found"));
+    @Transactional
+    public DossierMedicaleResponseDTO update(
+            Authentication auth, Long patienteId, CreateDossierMedicaleDTO dto) {
 
-        mapper.updateEntityFromDto(dto, dossier);
+        Gynecologue gyneco = getGyneco(auth);
+        checkRelationActive(patienteId, gyneco.getId());
+
+        Patiente patiente = patienteRepo.findById(patienteId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Patiente non trouvée"));
+
+        DossierMedicale dossier = patiente.getDossierMedicale();
+
+        if (dossier == null) {
+            dossier = mapper.toEntity(dto);
+            dossier.setPatiente(patiente);
+        } else {
+            mapper.updateEntityFromDto(dto, dossier);
+        }
+
+        dossier.setDerniereModificationPar(gyneco);
 
         return mapper.toDto(dossierRepo.save(dossier));
     }
 
-    // MY DOSSIER
+
     public DossierMedicaleResponseDTO getMyDossier(Authentication auth) {
 
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
 
-        Patiente patiente = patienteRepo.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Patiente not found"));
+        Patiente patiente = patienteRepo.findByUser_Id(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Patiente non trouvée"));
+
+
+        if (patiente.getDossierMedicale() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Aucun dossier médical encore créé");
+        }
 
         return mapper.toDto(patiente.getDossierMedicale());
+    }
+
+
+
+
+    private Gynecologue getGyneco(Authentication auth) {
+        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+        return gynecologueRepo.findByUser_Id(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
+    }
+
+
+
+    private void checkRelationActive(Long patienteId, Long gynecologueId) {
+
+        relationRepo
+                .findByPatiente_IdAndGynecologue_IdAndStatus(patienteId, gynecologueId, StatutRelation.ACTIVE)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.FORBIDDEN, "Aucune relation active avec cette patiente"));
     }
 }

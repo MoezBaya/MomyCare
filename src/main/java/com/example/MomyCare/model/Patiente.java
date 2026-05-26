@@ -29,11 +29,14 @@ public class Patiente{
     @OneToMany(mappedBy = "patiente", cascade = CascadeType.ALL , orphanRemoval = true)
     private List<RendezVous> rendezVousList =  new ArrayList<>();
 
-    @OneToOne( cascade = CascadeType.ALL, orphanRemoval = true)
-    private DossierMedicale dossierMedicale;
+    @OneToOne(mappedBy = "patiente",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private DossierMedicale dossierMedicale;;
 
     @OneToMany(mappedBy = "patiente", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Demande> demandes = new ArrayList<>();
+    private List<Relation> relations = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name="gynecologue_id")

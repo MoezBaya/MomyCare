@@ -6,70 +6,72 @@ import com.example.MomyCare.dao.UserRepository;
 import com.example.MomyCare.dto.gynecologue.GynecologueResponseDTO;
 import com.example.MomyCare.dto.gynecologue.GynecologueSignupRequest;
 import com.example.MomyCare.dto.patiente.PatienteResponseDTO;
+import com.example.MomyCare.exception.ResourceNotFoundException;
 import com.example.MomyCare.mapper.GynecologueMapper;
 import com.example.MomyCare.mapper.PatienteMapper;
 import com.example.MomyCare.mapper.UserMapper;
 import com.example.MomyCare.model.Gynecologue;
-import com.example.MomyCare.model.Patiente;
-import com.example.MomyCare.model.User;
 import com.example.MomyCare.security.service.UserDetailsImpl;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class GynecologueService {
 
     private final GynecologueRepository gynecologueRepository;
+    private final PatienteRepository patienteRepository;
     private final UserRepository userRepository;
     private final GynecologueMapper gynecologueMapper;
-    private final UserMapper userMapper;
-    private final PatienteRepository patienteRepository;
     private final PatienteMapper patienteMapper;
+    private final UserMapper userMapper;
 
-    public GynecologueResponseDTO updateGyneco(Authentication auth, GynecologueSignupRequest dto) {
-
-        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
-
-        Gynecologue gynecologue = gynecologueRepository.findByUserId(userDetails.getId())
-                .orElseThrow(() -> new RuntimeException("Gynecologue not found"));
-
-        gynecologueMapper.updateFromDto(dto, gynecologue);
-
-        User user = gynecologue.getUser();
-        if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-
-        userMapper.updateUserFromGynecoDto(dto, user);
-        userRepository.save(user);
-        gynecologueRepository.save(gynecologue);
-        return gynecologueMapper.toDto(gynecologue);
-    }
-
+    @Transactional(readOnly = true)
     public GynecologueResponseDTO getMyProfile(Authentication auth) {
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-
-        Gynecologue gynecologue = gynecologueRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("Gynecologue not found"));
-        return gynecologueMapper.toDto(gynecologue);
+        Gynecologue gyneco = getGyneco(auth);
+        return gynecologueMapper.toDto(gyneco);
     }
 
+    @Transactional
+    public GynecologueResponseDTO updateGyneco(Authentication auth,
+                                               GynecologueSignupRequest dto) {
+        Gynecologue gyneco = getGyneco(auth);
+
+        gynecologueMapper.updateFromDto(dto, gyneco);
+        userMapper.updateUserFromGynecoDto(dto, gyneco.getUser());
+        userRepository.save(gyneco.getUser());
+        gynecologueRepository.save(gyneco);
+
+        return gynecologueMapper.toDto(gyneco);
+    }
+
+    @Transactional(readOnly = true)
     public List<PatienteResponseDTO> getMyPatients(Authentication auth) {
+        Gynecologue gyneco = getGyneco(auth);
+        return patienteMapper.toDTOList(
+                patienteRepository.findByGynecologue_Id(gyneco.getId())
+        );
+    }
 
+    @Transactional(readOnly = true)
+    public GynecologueResponseDTO getGynecologue(Long id) {
+        Gynecologue gyneco = gynecologueRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Gynécologue non trouvé"));
+        return gynecologueMapper.toDto(gyneco);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GynecologueResponseDTO> getAllGynecologues() {
+        return gynecologueMapper.toDtosList(gynecologueRepository.findAll());
+    }
+
+    private Gynecologue getGyneco(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-
-        Gynecologue gyneco = gynecologueRepository
-                .findByUserId(user.getId())
-                .orElseThrow();
-
-        List<Patiente> patiente = patienteRepository.findByGynecologueId(gyneco.getId());
-
-        return patienteMapper.toDTOList(patiente);
+        return gynecologueRepository.findByUser_Id(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Gynécologue non trouvé"));
     }
 }
