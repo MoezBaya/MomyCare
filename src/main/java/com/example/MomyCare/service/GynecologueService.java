@@ -21,6 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@jakarta.transaction.Transactional
 public class GynecologueService {
 
     private final GynecologueRepository gynecologueRepository;

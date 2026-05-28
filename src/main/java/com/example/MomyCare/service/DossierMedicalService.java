@@ -9,17 +9,18 @@ import com.example.MomyCare.dto.DossierMedicale.DossierMedicaleResponseDTO;
 import com.example.MomyCare.mapper.DossierMedicalMapper;
 import com.example.MomyCare.model.*;
 import com.example.MomyCare.security.service.UserDetailsImpl;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class DossierMedicalService {
 
     private final DossierMedicaleRepository dossierRepo;
@@ -52,7 +53,7 @@ public class DossierMedicalService {
     }
 
 
-    @Transactional
+    @Transactional(readOnly= true)
     public DossierMedicaleResponseDTO getByPatienteId(
             Authentication auth, Long patienteId) {
 
@@ -98,6 +99,7 @@ public class DossierMedicalService {
     }
 
 
+    @Transactional(readOnly = true)
     public DossierMedicaleResponseDTO getMyDossier(Authentication auth) {
 
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
@@ -115,16 +117,12 @@ public class DossierMedicalService {
         return mapper.toDto(patiente.getDossierMedicale());
     }
 
-
-
-
     private Gynecologue getGyneco(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
         return gynecologueRepo.findByUser_Id(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
     }
-
 
 
     private void checkRelationActive(Long patienteId, Long gynecologueId) {

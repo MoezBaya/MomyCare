@@ -5,6 +5,7 @@ import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
 import com.example.MomyCare.service.PatienteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,11 +17,13 @@ public class PatienteController {
     private final PatienteService patienteService;
 
     @GetMapping("/me")
+    @PreAuthorize("hasRole('PATIENTE')")
     public PatienteResponseDTO getMyProfile(Authentication authentication) {
         return patienteService.getMyProfile(authentication);
     }
 
     @PutMapping("/me")
+    @PreAuthorize("hasRole('PATIENTE')")
     public PatienteResponseDTO updateMyProfile(
             Authentication authentication,
             @Valid @RequestBody PatienteSignupRequest request

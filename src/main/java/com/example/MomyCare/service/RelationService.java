@@ -19,72 +19,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class RelationService {
 
     private final RelationRepository relationRepository;
     private final PatienteRepository patienteRepository;
     private final GynecologueRepository gynecologueRepository;
     private final RelationMapper relationMapper;
-
-    // ─── PATIENTE: Suivre un gynécologue ──────────────────────────────────────
-    @Transactional
-    public RelationResponseDTO followGynecologue(Authentication auth, Long gynecologueId) {
-
-        Patiente patiente = getPatiente(auth);
-
-        Gynecologue gynecologue = gynecologueRepository.findById(gynecologueId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
-
-        boolean exists = relationRepository.existsByPatiente_IdAndGynecologue_IdAndStatusIn(
-                patiente.getId(),
-                gynecologueId,
-                List.of(StatutRelation.PENDING, StatutRelation.ACTIVE)
-        );
-        if (exists) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Demande déjà envoyée ou relation déjà active");
-        }
-
-        Relation relation = Relation.builder()
-                .patiente(patiente)
-                .gynecologue(gynecologue)
-                .status(StatutRelation.PENDING)
-                .build();
-
-        return relationMapper.toDto(relationRepository.save(relation));
-    }
-
-    // ─── GYNÉCO: Accepter ou refuser une demande ──────────────────────────────
-    @Transactional
-    public RelationResponseDTO repondreALaDemande(
-            Authentication auth, Long relationId, boolean accepter) {
-
-        Gynecologue gynecologue = getGyneco(auth);
-
-        Relation relation = relationRepository.findById(relationId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Relation non trouvée"));
-
-        if (!relation.getGynecologue().getId().equals(gynecologue.getId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Cette demande ne vous appartient pas");
-        }
-
-        if (!relation.getStatus().equals(StatutRelation.PENDING)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Demande déjà traitée");
-        }
-
-        relation.setStatus(accepter ? StatutRelation.ACTIVE : StatutRelation.ENDED);
-        if (accepter) {
-            relation.setDateDebut(LocalDate.now());
-        } else {
-            relation.setDateFin(LocalDate.now());
-        }
-
-        return relationMapper.toDto(relationRepository.save(relation));
-    }
 
     // ─── GYNÉCO: Terminer une relation (fin grossesse) ────────────────────────
     @Transactional

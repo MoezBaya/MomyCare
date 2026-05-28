@@ -16,6 +16,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class MedicamentService {
 
     private final MedicamentRepository medicamentRepository;

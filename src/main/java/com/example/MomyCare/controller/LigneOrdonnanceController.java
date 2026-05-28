@@ -48,7 +48,7 @@ public class LigneOrdonnanceController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENT')")
+    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<List<LigneOrdonnanceResponseDTO>> getOrdonnancesByDossier(
             @PathVariable Long ordonnanceId) {
 

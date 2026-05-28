@@ -38,4 +38,15 @@ public class ConsultationController {
                 .status(HttpStatus.CREATED)
                 .body(consultationService.addConsultation(auth, dto));
     }
+
+    // Patiente → voir ses propres consultations
+    @GetMapping("/mes-consultations")
+    @PreAuthorize("hasRole('PATIENTE')")
+    public ResponseEntity<List<ConsultationResponseDTO>> getMesConsultations(
+            Authentication auth) {
+        return ResponseEntity.ok(
+                consultationService.getMesConsultations(auth));
+    }
+
+
 }

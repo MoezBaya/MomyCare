@@ -20,13 +20,13 @@ public class MedicamentController {
     private final MedicamentService medicamentService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENT')")
+    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<List<MedicamentResponseDTO>> getAll() {
         return ResponseEntity.ok(medicamentService.getAllMedicaments());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENT')")
+    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<MedicamentResponseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(medicamentService.getMedicamentById(id));
     }

@@ -16,30 +16,11 @@ public class RelationController {
 
     private final RelationService relationService;
 
-
-    @PostMapping("/follow/{gynecologueId}")
-    @PreAuthorize("hasRole('PATIENTE')")
-    public RelationResponseDTO follow(Authentication auth,
-                                      @PathVariable Long gynecologueId) {
-        return relationService.followGynecologue(auth, gynecologueId);
-    }
-
-
-    @PatchMapping("/{relationId}/repondre")
-    @PreAuthorize("hasRole('GYNECOLOGUE')")
-    public RelationResponseDTO repondre(Authentication auth,
-                                        @PathVariable Long relationId,
-                                        @RequestParam boolean accepter) {
-        return relationService.repondreALaDemande(auth, relationId, accepter);
-    }
-
-
     @GetMapping("/mes-relations")
     @PreAuthorize("hasRole('PATIENTE')")
     public List<RelationResponseDTO> mesRelations(Authentication auth) {
         return relationService.getMesRelations(auth);
     }
-
 
     @GetMapping("/demandes")
     @PreAuthorize("hasRole('GYNECOLOGUE')")

@@ -8,38 +8,42 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "rendez_vous")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Getter
 @Setter
 public class RendezVous {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private LocalDateTime dateRendezVous ;
+    private LocalDateTime dateRendezVous;
 
     @Enumerated(EnumType.STRING)
-    private StatusRDV statusRDV ;
+    @Column(nullable = false)
+    private StatusRDV statusRDV;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private MotifRendezVous motif;
 
     @CreationTimestamp
-    @Column(name = "create_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
     @UpdateTimestamp
-    @Column(name = "update_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "patiente_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patiente_id", nullable = false)
     private Patiente patiente;
 
-    @ManyToOne
-    @JoinColumn(name = "gynecologue_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gynecologue_id", nullable = false)
     private Gynecologue gynecologue;
-
 }

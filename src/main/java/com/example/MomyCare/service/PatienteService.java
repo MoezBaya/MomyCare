@@ -12,10 +12,12 @@ import com.example.MomyCare.security.service.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class PatienteService {
 
     private final PatienteRepository patienteRepository;
@@ -23,6 +25,7 @@ public class PatienteService {
     private final UserMapper userMapper;
     private final UserRepository userRepository;
 
+    @Transactional(readOnly = true)
     public PatienteResponseDTO getMyProfile(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
 

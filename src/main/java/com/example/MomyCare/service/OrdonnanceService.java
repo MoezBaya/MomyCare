@@ -1,113 +1,142 @@
 package com.example.MomyCare.service;
 
 import com.example.MomyCare.dao.ConsultationRepository;
+import com.example.MomyCare.dao.GynecologueRepository;
 import com.example.MomyCare.dao.OrdonnanceRepository;
 import com.example.MomyCare.dto.ordonnance.OrdonnanceRequestDTO;
 import com.example.MomyCare.dto.ordonnance.OrdonnanceResponseDTO;
-import com.example.MomyCare.exception.ResourceNotFoundException;
 import com.example.MomyCare.mapper.OrdonnanceMapper;
 import com.example.MomyCare.model.*;
 import com.example.MomyCare.security.service.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class OrdonnanceService {
 
-    private final OrdonnanceRepository   ordonnanceRepository;
-    private final ConsultationRepository consultationRepository;
-    private final MedicamentService      medicamentService;
-    private final OrdonnanceMapper       ordonnanceMapper;
+    private final OrdonnanceRepository ordonnanceRepo;
+    private final ConsultationRepository consultationRepo;
+    private final GynecologueRepository gynecologueRepo;
+    private final OrdonnanceMapper mapper;
 
-    // ── CREATE ───────────────────────────────────────────────────────
+    // ================= CREATE =================
 
-    @Transactional
-    public OrdonnanceResponseDTO createOrdonnance(Long consultationId,
-                                                  OrdonnanceRequestDTO dto,
-                                                  Authentication auth) {
-        UserDetailsImpl currentUser = (UserDetailsImpl) auth.getPrincipal();
-        log.info("Création ordonnance — consultation {} par {}",
-                consultationId, currentUser.getUsername());
+    public OrdonnanceResponseDTO createOrdonnance(
+            Authentication auth,
+            Long consultationId,
+            OrdonnanceRequestDTO dto
+    ) {
 
-        Consultation consultation = findConsultationOrThrow(consultationId);
+        Gynecologue gyneco = getGyneco(auth);
+        Consultation consultation = findConsultation(consultationId);
+        validateConsultationAppartientAuGyneco(consultation, gyneco);
 
-        Ordonnance ordonnance = ordonnanceMapper.toEntity(dto);
-        ordonnance.setConsultation(consultation);
+        boolean exists = ordonnanceRepo
+                .existsByNumOrdonnanceAndConsultation_IdConsultation(dto.getNumOrdonnance(), consultationId);
 
-        if (dto.getLignes() != null) {
-            dto.getLignes().forEach(ligneDTO -> {
-                Medicament medicament = medicamentService.findOrThrow(ligneDTO.getMedicamentId());
-                LigneOrdonnance ligne = ordonnanceMapper.toLigneEntity(ligneDTO);
-                ligne.setMedicament(medicament);
-                ordonnance.ajouterLigneOrdonance(ligne);
-            });
+        if (exists) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ce numéro d'ordonnance existe déjà");
         }
 
-        Ordonnance saved = ordonnanceRepository.save(ordonnance);
-        log.info("Ordonnance {} créée avec succès", saved.getIdOrdonnance());
-        return ordonnanceMapper.toResponseDTO(saved);
+        Ordonnance ordonnance = mapper.toEntity(dto);
+        ordonnance.setConsultation(consultation);
+
+        return mapper.toResponseDTO(ordonnanceRepo.save(ordonnance));
     }
 
-    // ── GET ONE ──────────────────────────────────────────────────────
+    // ================= GET BY ID =================
 
     @Transactional(readOnly = true)
-    public OrdonnanceResponseDTO getOrdonnanceById(Long consultationId, Long ordonnanceId) {
-        return ordonnanceMapper.toResponseDTO(findOrThrow(consultationId, ordonnanceId));
+    public OrdonnanceResponseDTO getOrdonnanceById(
+            Long consultationId,
+            Long ordonnanceId
+    ) {
+
+        Ordonnance ordonnance = findOrThrow(ordonnanceId);
+        validateOrdonnanceAppartientConsultation(ordonnance, consultationId);
+
+        return mapper.toResponseDTO(ordonnance);
     }
 
-    // ── GET ALL by consultation ───────────────────────────────────────
+    // ================= GET ALL =================
 
     @Transactional(readOnly = true)
     public List<OrdonnanceResponseDTO> getOrdonnancesByConsultation(Long consultationId) {
-        findConsultationOrThrow(consultationId); // vérifie existence
-        return ordonnanceMapper.toResponseDTOList(
-                ordonnanceRepository.findByConsultation_IdConsultation(consultationId));
+
+        findConsultation(consultationId);
+
+        return mapper.toResponseDTOList(
+                ordonnanceRepo.findByConsultation_IdConsultation(consultationId)
+        );
     }
 
-    // ── DELETE ───────────────────────────────────────────────────────
+    // ================= DELETE =================
 
-    @Transactional
-    public void deleteOrdonnance(Long consultationId, Long ordonnanceId, Authentication auth) {
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        log.info("Suppression ordonnance {} par {}", ordonnanceId, user.getUsername());
+    public void deleteOrdonnance(
+            Authentication auth,
+            Long consultationId,
+            Long ordonnanceId
+    ) {
 
-        Ordonnance ordonnance = findOrThrow(consultationId, ordonnanceId);
-        ordonnance.getConsultation().supprimerOrdonnance(ordonnance); // méthode utilitaire
-        ordonnanceRepository.delete(ordonnance);
-        log.info("Ordonnance {} supprimée", ordonnanceId);
-    }
-
-    // ── helpers ──────────────────────────────────────────────────────
-
-    // public → réutilisé par LigneOrdonnanceService avec un seul param
-    public Ordonnance findOrThrow(Long ordonnanceId) {
-        return ordonnanceRepository.findById(ordonnanceId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Ordonnance introuvable avec l'id : " + ordonnanceId));
-    }
-
-    // vérifie aussi que l'ordonnance appartient bien à la consultation
-    public Ordonnance findOrThrow(Long consultationId, Long ordonnanceId) {
+        Gynecologue gyneco = getGyneco(auth);
         Ordonnance ordonnance = findOrThrow(ordonnanceId);
+        validateOrdonnanceAppartientConsultation(ordonnance, consultationId);
+
+        validateConsultationAppartientAuGyneco(ordonnance.getConsultation(), gyneco);
+
+        ordonnanceRepo.delete(ordonnance);
+    }
+
+    // ================= HELPERS =================
+
+    public Ordonnance findOrThrow(Long ordonnanceId) {
+        return ordonnanceRepo.findById(ordonnanceId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordonnance non trouvée"));
+    }
+
+    private Consultation findConsultation(Long consultationId) {
+        return consultationRepo.findById(consultationId).orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Consultation non trouvée"));
+    }
+
+    private Gynecologue getGyneco(Authentication auth) {
+
+        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+
+        return gynecologueRepo.findByUser_Id(user.getId())
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
+    }
+
+    public void validateConsultationAppartientAuGyneco(Consultation consultation, Gynecologue gyneco) {
+
+        Long gynecoId = consultation.getDossierMedicale()
+                        .getDerniereModificationPar()
+                        .getId();
+
+        if (!gynecoId.equals(gyneco.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cette consultation ne vous appartient pas");
+        }
+    }
+
+    private void validateOrdonnanceAppartientConsultation(
+            Ordonnance ordonnance,
+            Long consultationId
+    ) {
 
         if (!ordonnance.getConsultation().getIdConsultation().equals(consultationId)) {
-            throw new ResourceNotFoundException(
-                    "Ordonnance " + ordonnanceId +
-                            " n'appartient pas à la consultation " + consultationId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cette ordonnance n'appartient pas à cette consultation"
+            );
         }
-        return ordonnance;
-    }
-
-    private Consultation findConsultationOrThrow(Long consultationId) {
-        return consultationRepository.findById(consultationId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Consultation introuvable avec l'id : " + consultationId));
     }
 }

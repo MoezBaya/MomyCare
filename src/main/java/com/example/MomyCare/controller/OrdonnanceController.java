@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/consultations/{consultationId}/ordonnances")
 @RequiredArgsConstructor
@@ -22,45 +21,44 @@ public class OrdonnanceController {
 
     private final OrdonnanceService ordonnanceService;
 
+    // POST — créer une ordonnance
     @PostMapping
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<OrdonnanceResponseDTO> createOrdonnance(
+            Authentication auth,
             @PathVariable Long consultationId,
-            @Valid @RequestBody OrdonnanceRequestDTO dto,
-            Authentication auth) {
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ordonnanceService.createOrdonnance(consultationId, dto, auth));
+            @Valid @RequestBody OrdonnanceRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ordonnanceService.createOrdonnance(auth, consultationId, dto));
     }
 
+    // GET — une ordonnance par ID
     @GetMapping("/{ordonnanceId}")
-    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENT')")
+    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<OrdonnanceResponseDTO> getOrdonnance(
             @PathVariable Long consultationId,
             @PathVariable Long ordonnanceId) {
-
         return ResponseEntity.ok(
                 ordonnanceService.getOrdonnanceById(consultationId, ordonnanceId));
     }
 
+    // GET — toutes les ordonnances d'une consultation
     @GetMapping
-    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENT')")
+    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<List<OrdonnanceResponseDTO>> getOrdonnancesByConsultation(
             @PathVariable Long consultationId) {
-
         return ResponseEntity.ok(
                 ordonnanceService.getOrdonnancesByConsultation(consultationId));
     }
 
+    // DELETE — supprimer une ordonnance
     @DeleteMapping("/{ordonnanceId}")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<Void> deleteOrdonnance(
+            Authentication auth,
             @PathVariable Long consultationId,
-            @PathVariable Long ordonnanceId,
-            Authentication auth) {
-
-        ordonnanceService.deleteOrdonnance(consultationId, ordonnanceId, auth);
+            @PathVariable Long ordonnanceId) {
+        ordonnanceService.deleteOrdonnance(auth, consultationId, ordonnanceId);
         return ResponseEntity.noContent().build();
     }
 }
