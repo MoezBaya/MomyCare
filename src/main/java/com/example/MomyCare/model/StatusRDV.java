@@ -4,5 +4,6 @@ public enum StatusRDV {
     EN_ATTENTE,
     CONFIRME,
     ANNULE,
+    REFUSER,
     TERMINE
 }

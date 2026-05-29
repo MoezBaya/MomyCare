@@ -27,4 +27,10 @@ public class RelationController {
     public List<RelationResponseDTO> demandes(Authentication auth) {
         return relationService.getDemandesEnAttente(auth);
     }
+
+    @PatchMapping("/{relationId}/terminer") @PreAuthorize("hasRole('GYNECOLOGUE')")
+    public RelationResponseDTO terminerRelation( Authentication auth,
+                                                 @PathVariable Long relationId ) {
+        return relationService.terminerRelation( auth, relationId );
+    }
 }

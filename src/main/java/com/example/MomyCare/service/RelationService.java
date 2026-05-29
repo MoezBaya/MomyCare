@@ -28,63 +28,51 @@ public class RelationService {
     private final RelationMapper relationMapper;
 
     // ─── GYNÉCO: Terminer une relation (fin grossesse) ────────────────────────
-    @Transactional
-    public RelationResponseDTO terminerRelation(
-            Authentication auth, Long relationId, String notes) {
-
-        Gynecologue gynecologue = getGyneco(auth);
-
+    public RelationResponseDTO terminerRelation( Authentication auth, Long relationId ) {
+        Gynecologue gynecologue = getAuthenticatedGyneco(auth);
         Relation relation = relationRepository.findById(relationId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Relation non trouvée"));
-
-        if (!relation.getGynecologue().getId().equals(gynecologue.getId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Cette relation ne vous appartient pas");
+                .orElseThrow(() -> new ResponseStatusException( HttpStatus.NOT_FOUND, "Relation non trouvée" ));
+        validateRelationOwnership(relation, gynecologue);
+        if (relation.getStatus() != StatutRelation.ACTIVE) {
+            throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Seule une relation active peut être terminée" );
         }
-
-        if (!relation.getStatus().equals(StatutRelation.ACTIVE)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Seule une relation active peut être terminée");
-        }
-
         relation.setStatus(StatutRelation.ENDED);
         relation.setDateFin(LocalDate.now());
-
-        return relationMapper.toDto(relationRepository.save(relation));
-    }
+        Relation savedRelation = relationRepository.save(relation);
+        return relationMapper.toDto(savedRelation); }
 
     // ─── PATIENTE: Voir ses relations ─────────────────────────────────────────
     @Transactional(readOnly = true)
     public List<RelationResponseDTO> getMesRelations(Authentication auth) {
-        Patiente patiente = getPatiente(auth);
-        return relationMapper.toDtoList(
-                relationRepository.findByPatiente_Id(patiente.getId())
-        );
-    }
+        Patiente patiente = getAuthenticatedPatiente(auth);
+        List<Relation> relations = relationRepository.findByPatiente_Id(patiente.getId());
+        return relationMapper.toDtoList(relations); }
 
     // ─── GYNÉCO: Voir les demandes en attente ─────────────────────────────────
     @Transactional(readOnly = true)
-    public List<RelationResponseDTO> getDemandesEnAttente(Authentication auth) {
-        Gynecologue gynecologue = getGyneco(auth);
-        return relationMapper.toDtoList(
-                relationRepository.findByGynecologue_IdAndStatus(
-                        gynecologue.getId(), StatutRelation.PENDING)
-        );
-    }
+    public List<RelationResponseDTO> getDemandesEnAttente(Authentication auth ) {
+        Gynecologue gynecologue = getAuthenticatedGyneco(auth);
+        List<Relation> relations = relationRepository
+                .findByGynecologue_IdAndStatus( gynecologue.getId(), StatutRelation.PENDING );
+        return relationMapper.toDtoList(relations); }
 
     // ─── Helpers privés ───────────────────────────────────────────────────────
-    private Patiente getPatiente(Authentication auth) {
+    private Patiente getAuthenticatedPatiente(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
         return patienteRepository.findByUser_Id(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Patiente non trouvée"));
     }
 
-    private Gynecologue getGyneco(Authentication auth) {
+    private Gynecologue getAuthenticatedGyneco(Authentication auth) {
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
         return gynecologueRepository.findByUser_Id(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
+    }
+    private void validateRelationOwnership( Relation relation, Gynecologue gynecologue ) {
+        if (!relation.getGynecologue().getId() .equals(gynecologue.getId())) {
+            throw new ResponseStatusException( HttpStatus.FORBIDDEN, "Cette relation ne vous appartient pas" );
+        }
     }
 }

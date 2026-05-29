@@ -11,6 +11,7 @@ import com.example.MomyCare.mapper.GynecologueMapper;
 import com.example.MomyCare.mapper.PatienteMapper;
 import com.example.MomyCare.mapper.UserMapper;
 import com.example.MomyCare.model.Gynecologue;
+import com.example.MomyCare.security.service.SecurityContextService;
 import com.example.MomyCare.security.service.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -21,30 +22,38 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@jakarta.transaction.Transactional
+@Transactional
 public class GynecologueService {
 
     private final GynecologueRepository gynecologueRepository;
     private final PatienteRepository patienteRepository;
-    private final UserRepository userRepository;
+
     private final GynecologueMapper gynecologueMapper;
     private final PatienteMapper patienteMapper;
     private final UserMapper userMapper;
 
+    private final SecurityContextService security;
+
     @Transactional(readOnly = true)
     public GynecologueResponseDTO getMyProfile(Authentication auth) {
-        Gynecologue gyneco = getGyneco(auth);
+
+        Gynecologue gyneco = security.getGyneco(auth);
+
         return gynecologueMapper.toDto(gyneco);
     }
 
-    @Transactional
-    public GynecologueResponseDTO updateGyneco(Authentication auth,
-                                               GynecologueSignupRequest dto) {
-        Gynecologue gyneco = getGyneco(auth);
+
+    public GynecologueResponseDTO updateGyneco(
+            Authentication auth,
+            GynecologueSignupRequest dto
+    ) {
+
+        Gynecologue gyneco = security.getGyneco(auth);
 
         gynecologueMapper.updateFromDto(dto, gyneco);
+
         userMapper.updateUserFromGynecoDto(dto, gyneco.getUser());
-        userRepository.save(gyneco.getUser());
+
         gynecologueRepository.save(gyneco);
 
         return gynecologueMapper.toDto(gyneco);
@@ -52,7 +61,9 @@ public class GynecologueService {
 
     @Transactional(readOnly = true)
     public List<PatienteResponseDTO> getMyPatients(Authentication auth) {
-        Gynecologue gyneco = getGyneco(auth);
+
+        Gynecologue gyneco = security.getGyneco(auth);
+
         return patienteMapper.toDTOList(
                 patienteRepository.findByGynecologue_Id(gyneco.getId())
         );
@@ -60,19 +71,20 @@ public class GynecologueService {
 
     @Transactional(readOnly = true)
     public GynecologueResponseDTO getGynecologue(Long id) {
+
         Gynecologue gyneco = gynecologueRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Gynécologue non trouvé"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Gynécologue non trouvé")
+                );
+
         return gynecologueMapper.toDto(gyneco);
     }
 
     @Transactional(readOnly = true)
     public List<GynecologueResponseDTO> getAllGynecologues() {
-        return gynecologueMapper.toDtosList(gynecologueRepository.findAll());
-    }
 
-    private Gynecologue getGyneco(Authentication auth) {
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        return gynecologueRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Gynécologue non trouvé"));
+        return gynecologueMapper.toDtosList(
+                gynecologueRepository.findAll()
+        );
     }
 }

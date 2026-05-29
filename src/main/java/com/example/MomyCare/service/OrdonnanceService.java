@@ -7,7 +7,7 @@ import com.example.MomyCare.dto.ordonnance.OrdonnanceRequestDTO;
 import com.example.MomyCare.dto.ordonnance.OrdonnanceResponseDTO;
 import com.example.MomyCare.mapper.OrdonnanceMapper;
 import com.example.MomyCare.model.*;
-import com.example.MomyCare.security.service.UserDetailsImpl;
+import com.example.MomyCare.security.service.AuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -24,8 +24,8 @@ public class OrdonnanceService {
 
     private final OrdonnanceRepository ordonnanceRepo;
     private final ConsultationRepository consultationRepo;
-    private final GynecologueRepository gynecologueRepo;
     private final OrdonnanceMapper mapper;
+    private final AuthorizationService authService;
 
     // ================= CREATE =================
 
@@ -35,15 +35,26 @@ public class OrdonnanceService {
             OrdonnanceRequestDTO dto
     ) {
 
-        Gynecologue gyneco = getGyneco(auth);
-        Consultation consultation = findConsultation(consultationId);
-        validateConsultationAppartientAuGyneco(consultation, gyneco);
+        Gynecologue gyneco =
+                authService.getCurrentGyneco(auth);
+
+        Consultation consultation =
+                authService.getConsultationIfAuthorized(
+                        consultationId,
+                        gyneco.getId()
+                );
 
         boolean exists = ordonnanceRepo
-                .existsByNumOrdonnanceAndConsultation_IdConsultation(dto.getNumOrdonnance(), consultationId);
+                .existsByNumOrdonnanceAndConsultation_IdConsultation(
+                        dto.getNumOrdonnance(),
+                        consultationId
+                );
 
         if (exists) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ce numéro d'ordonnance existe déjà");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Ce numéro d'ordonnance existe déjà"
+            );
         }
 
         Ordonnance ordonnance = mapper.toEntity(dto);
@@ -61,7 +72,8 @@ public class OrdonnanceService {
     ) {
 
         Ordonnance ordonnance = findOrThrow(ordonnanceId);
-        validateOrdonnanceAppartientConsultation(ordonnance, consultationId);
+
+        validateBelongsToConsultation(ordonnance, consultationId);
 
         return mapper.toResponseDTO(ordonnance);
     }
@@ -69,9 +81,18 @@ public class OrdonnanceService {
     // ================= GET ALL =================
 
     @Transactional(readOnly = true)
-    public List<OrdonnanceResponseDTO> getOrdonnancesByConsultation(Long consultationId) {
+    public List<OrdonnanceResponseDTO> getOrdonnancesByConsultation(
+            Authentication auth,
+            Long consultationId
+    ) {
 
-        findConsultation(consultationId);
+        Gynecologue gyneco =
+                authService.getCurrentGyneco(auth);
+
+        authService.getConsultationIfAuthorized(
+                consultationId,
+                gyneco.getId()
+        );
 
         return mapper.toResponseDTOList(
                 ordonnanceRepo.findByConsultation_IdConsultation(consultationId)
@@ -86,11 +107,27 @@ public class OrdonnanceService {
             Long ordonnanceId
     ) {
 
-        Gynecologue gyneco = getGyneco(auth);
-        Ordonnance ordonnance = findOrThrow(ordonnanceId);
-        validateOrdonnanceAppartientConsultation(ordonnance, consultationId);
+        Gynecologue gyneco =
+                authService.getCurrentGyneco(auth);
 
-        validateConsultationAppartientAuGyneco(ordonnance.getConsultation(), gyneco);
+        Consultation consultation =
+                authService.getConsultationIfAuthorized(
+                        consultationId,
+                        gyneco.getId()
+                );
+
+        Ordonnance ordonnance = findOrThrow(ordonnanceId);
+
+        validateBelongsToConsultation(ordonnance, consultationId);
+
+        if (!ordonnance.getConsultation().getIdConsultation()
+                .equals(consultation.getIdConsultation())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Accès refusé"
+            );
+        }
 
         ordonnanceRepo.delete(ordonnance);
     }
@@ -100,41 +137,23 @@ public class OrdonnanceService {
     public Ordonnance findOrThrow(Long ordonnanceId) {
         return ordonnanceRepo.findById(ordonnanceId)
                 .orElseThrow(() ->
-                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordonnance non trouvée"));
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Ordonnance non trouvée"
+                        ));
     }
 
-    private Consultation findConsultation(Long consultationId) {
-        return consultationRepo.findById(consultationId).orElseThrow(() ->
-                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Consultation non trouvée"));
-    }
-
-    private Gynecologue getGyneco(Authentication auth) {
-
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-
-        return gynecologueRepo.findByUser_Id(user.getId())
-                .orElseThrow(() ->
-                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
-    }
-
-    public void validateConsultationAppartientAuGyneco(Consultation consultation, Gynecologue gyneco) {
-
-        Long gynecoId = consultation.getDossierMedicale()
-                        .getDerniereModificationPar()
-                        .getId();
-
-        if (!gynecoId.equals(gyneco.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cette consultation ne vous appartient pas");
-        }
-    }
-
-    private void validateOrdonnanceAppartientConsultation(
+    private void validateBelongsToConsultation(
             Ordonnance ordonnance,
             Long consultationId
     ) {
 
-        if (!ordonnance.getConsultation().getIdConsultation().equals(consultationId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+        if (!ordonnance.getConsultation()
+                .getIdConsultation()
+                .equals(consultationId)) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Cette ordonnance n'appartient pas à cette consultation"
             );
         }

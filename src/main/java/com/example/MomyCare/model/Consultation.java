@@ -43,12 +43,20 @@ public class Consultation {
     @ManyToOne
     @JoinColumn(name = "dossier_medicale_id")
     private DossierMedicale dossierMedicale;
-    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL , orphanRemoval = true)
-    private List<ResultatAnalyse> analyses = new ArrayList<>();
-    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL , orphanRemoval = true)
+
+    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AnalyseLaboratoire> analyses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Imagerie> imageries = new ArrayList<>();
+
     @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Ordonnance> ordonnances = new ArrayList<>();
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gynecologue_id", nullable = false)
+    private Gynecologue gynecologue;
 
     public void supprimerOrdonnance(Ordonnance ordonnance) {
         ordonnances.remove(ordonnance);

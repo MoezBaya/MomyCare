@@ -1,10 +1,16 @@
 package com.example.MomyCare.service;
 
-import com.example.MomyCare.dao.*;
-import com.example.MomyCare.dto.consultation.*;
+import com.example.MomyCare.dao.ConsultationRepository;
+import com.example.MomyCare.dao.DossierMedicaleRepository;
+import com.example.MomyCare.dto.consultation.ConsultationRequestDTO;
+import com.example.MomyCare.dto.consultation.ConsultationResponseDTO;
 import com.example.MomyCare.mapper.ConsultationMapper;
-import com.example.MomyCare.model.*;
-import com.example.MomyCare.security.service.UserDetailsImpl;
+import com.example.MomyCare.model.Consultation;
+import com.example.MomyCare.model.DossierMedicale;
+import com.example.MomyCare.model.Gynecologue;
+import com.example.MomyCare.model.Patiente;
+import com.example.MomyCare.security.service.AccessControlService;
+import com.example.MomyCare.security.service.SecurityContextService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -16,82 +22,90 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ConsultationService {
 
     private final ConsultationRepository consultationRepository;
-    private final GynecologueRepository  gynecologueRepository;
-    private final PatienteRepository     patienteRepository;
-    private final ConsultationMapper     mapper;
-    private final RelationRepository relationRepository;
+    private final ConsultationMapper mapper;
 
-    // ─── GET: toutes les consultations d'une patiente ─────────────────────────
+    private final SecurityContextService security;
+    private final AccessControlService access;
+    private final DossierMedicaleRepository dossierRepo;
+
+    // ─────────────────────────────────────────────
+    // GET: consultations d'une patiente (gyneco)
+    // ─────────────────────────────────────────────
     @Transactional(readOnly = true)
-    public List<ConsultationResponseDTO> getConsultationsByPatiente(Authentication auth, Long patienteId) {
-        getAuthenticatedGyneco(auth);
-        Patiente patiente = findPatiente(patienteId);
-        validateDossierExists(patiente);
+    public List<ConsultationResponseDTO> getConsultationsByPatiente(
+            Authentication auth,
+            Long patienteId
+    ) {
+        Gynecologue gyneco = security.getGyneco(auth);
 
-        return mapper.toDtoList(patiente.getDossierMedicale().getConsultations());
+        access.checkRelationActive(patienteId, gyneco.getId());
+
+        return consultationRepository
+                .findByDossierMedicale_Patiente_Id(patienteId)
+                .stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
-    // ─── POST: ajouter une consultation ───────────────────────────────────────
+    // ─────────────────────────────────────────────
+    // POST: add consultation
+    // ─────────────────────────────────────────────
     @Transactional
-    public ConsultationResponseDTO addConsultation(Authentication auth, ConsultationRequestDTO dto) {
+    public ConsultationResponseDTO addConsultation(
+            Authentication auth,
+            ConsultationRequestDTO dto
+    ) {
+        Gynecologue gyneco = security.getGyneco(auth);
 
-        Gynecologue gynecologue = getAuthenticatedGyneco(auth);
-        checkRelationActive(dto.getPatienteId(), gynecologue.getId());
-        Patiente patiente = findPatiente(dto.getPatienteId());
-        validateDossierExists(patiente);
-        DossierMedicale dossier = patiente.getDossierMedicale();
+        access.checkRelationActive(dto.getPatienteId(), gyneco.getId());
+
+        DossierMedicale dossier = findDossierOrThrow(dto.getPatienteId());
+
         Consultation consultation = mapper.toEntity(dto);
+        consultation.setGynecologue(gyneco);
         consultation.setDossierMedicale(dossier);
 
         return mapper.toDto(consultationRepository.save(consultation));
     }
 
+    // ─────────────────────────────────────────────
+    // GET: consultations du patient connecté
+    // ─────────────────────────────────────────────
     @Transactional(readOnly = true)
     public List<ConsultationResponseDTO> getMesConsultations(Authentication auth) {
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
 
-        Patiente patiente = patienteRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patiente non trouvée"));
+        Patiente patiente = security.getPatiente(auth);
 
-        validateDossierExists(patiente);
+        DossierMedicale dossier = patiente.getDossierMedicale();
 
-        return mapper.toDtoList(patiente.getDossierMedicale().getConsultations());
-    }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
-    private Gynecologue getAuthenticatedGyneco(Authentication auth) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
-        return gynecologueRepository.findByUser_Id(userDetails.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
-    }
-
-    private Patiente findPatiente(Long patienteId) {
-        return patienteRepository.findById(patienteId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Patiente non trouvée avec l'id : " + patienteId));
-    }
-
-    private void validateDossierExists(Patiente patiente) {
-        if (patiente.getDossierMedicale() == null) {
+        if (dossier == null) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Aucun dossier médical trouvé pour cette patiente");
+                    HttpStatus.NOT_FOUND,
+                    "Aucun dossier médical trouvé"
+            );
         }
+
+        return dossier.getConsultations()
+                .stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
-    private void checkRelationActive(Long patienteId, Long gynecologueId) {
+    // ─────────────────────────────────────────────
+    // HELPERS
+    // ─────────────────────────────────────────────
+    private DossierMedicale findDossierOrThrow(Long patienteId) {
 
-        relationRepository
-                .findByPatiente_IdAndGynecologue_IdAndStatus(patienteId, gynecologueId, StatutRelation.ACTIVE)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
-                                "Aucune relation active avec cette patiente"
-                        ));
+        return dossierRepo.findByPatiente_Id(patienteId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Dossier médical introuvable"
+                        )
+                );
     }
-
-
 }

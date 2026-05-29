@@ -7,6 +7,8 @@ import com.example.MomyCare.mapper.RendezVousMapper;
 import com.example.MomyCare.model.*;
 import com.example.MomyCare.security.service.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -82,7 +85,7 @@ public class RendezVousService {
             // Créer la relation automatiquement
             creerRelationEtDossier(rdv.getPatiente(), gyneco);
         } else {
-            rdv.setStatusRDV(StatusRDV.ANNULE);
+            rdv.setStatusRDV(StatusRDV.REFUSER);
         }
 
         return mapper.toDto(rdvRepo.save(rdv));
@@ -104,30 +107,58 @@ public class RendezVousService {
     }
 
     // ─── Logique automatique : Relation + Dossier ─────────────────────────────
-    private void creerRelationEtDossier(Patiente patiente, Gynecologue gyneco) {
+    private void creerRelationEtDossier(
+            Patiente patiente,
+            Gynecologue gyneco
+    ) {
 
-        // 1. Créer la relation ACTIVE seulement si elle n'existe pas déjà
+        // ================= RELATION =================
+
         boolean relationExiste = relationRepo
                 .existsByPatiente_IdAndGynecologue_IdAndStatus(
-                        patiente.getId(), gyneco.getId(), StatutRelation.ACTIVE);
+                        patiente.getId(),
+                        gyneco.getId(),
+                        StatutRelation.ACTIVE
+                );
 
         if (!relationExiste) {
+
             Relation relation = Relation.builder()
                     .patiente(patiente)
                     .gynecologue(gyneco)
                     .status(StatutRelation.ACTIVE)
                     .dateDebut(LocalDate.now())
                     .build();
-            relationRepo.save(relation);
+
+            try {
+
+                relationRepo.save(relation);
+
+            } catch (DataIntegrityViolationException ignored) {
+                log.warn(
+                        "Relation déjà créée pour la patiente {} et le gynécologue {}",
+                        patiente.getId(),
+                        gyneco.getId()
+                );
+            }
         }
 
-        // 2. Créer le dossier médical seulement s'il n'existe pas déjà
+        // ================= DOSSIER MÉDICAL =================
+
         if (patiente.getDossierMedicale() == null) {
+
             DossierMedicale dossier = DossierMedicale.builder()
                     .patiente(patiente)
                     .derniereModificationPar(gyneco)
                     .build();
-            dossierRepo.save(dossier);
+
+            try {
+
+                dossierRepo.save(dossier);
+
+            } catch (DataIntegrityViolationException ignored) {
+                log.warn("Dossier déjà créée pour la patiente {}", patiente.getId());
+            }
         }
     }
 

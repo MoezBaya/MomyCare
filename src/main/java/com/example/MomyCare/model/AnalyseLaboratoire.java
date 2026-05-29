@@ -5,36 +5,32 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "imagerie")
+@Table(name = "analyse_laboratoire")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Imagerie {
+public class AnalyseLaboratoire {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDate dateImagerie;
+    private LocalDate dateAnalyse;
 
-    private String type; // Echo, IRM...
+    private String type; // NFS, Glycémie...
 
-    private String description;
+    private String resultat;
 
     private String fichierNom;
 
-    private String fichierPath;
+    private String fichierType;
 
-    private String docteur;
+    private String fichierPath;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "consultation_id", nullable = false)

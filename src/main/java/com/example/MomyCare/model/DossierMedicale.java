@@ -30,7 +30,7 @@ public class DossierMedicale {
     @NotBlank(message = "date de grossese est obligatoire")
     private LocalDate dateDeGrosses;
 
-    // ✅ Ajouté — requis par DossierMedicalService
+    // Ajouté — requis par DossierMedicalService
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "derniere_modification_par_id")
     private Gynecologue derniereModificationPar;

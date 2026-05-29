@@ -7,10 +7,9 @@ import com.example.MomyCare.dto.ligneOrdonnance.LigneOrdonnanceResponseDTO;
 import com.example.MomyCare.exception.ResourceNotFoundException;
 import com.example.MomyCare.mapper.OrdonnanceMapper;
 import com.example.MomyCare.model.*;
-import com.example.MomyCare.security.service.UserDetailsImpl;
+import com.example.MomyCare.security.service.AuthorizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +23,11 @@ import java.util.List;
 @Transactional
 public class LigneOrdonnanceService {
 
-    private final LigneOrdonnanceRepository ligneOrdonnanceRepository;
+    private final LigneOrdonnanceRepository ligneRepo;
     private final OrdonnanceService ordonnanceService;
     private final MedicamentService medicamentService;
-    private final OrdonnanceMapper ordonnanceMapper;
-    private final GynecologueRepository gynecologueRepo;
+    private final OrdonnanceMapper mapper;
+    private final AuthorizationService authService;
 
     // ================= GET ALL =================
 
@@ -37,11 +36,10 @@ public class LigneOrdonnanceService {
             Long ordonnanceId
     ) {
 
-        ordonnanceService.findOrThrow(ordonnanceId);
+        Ordonnance ordonnance = ordonnanceService.findOrThrow(ordonnanceId);
 
-        return ordonnanceMapper.toLigneResponseDTOList(
-                ligneOrdonnanceRepository
-                        .findByOrdonnanceIdOrdonnance(ordonnanceId)
+        return mapper.toLigneResponseDTOList(
+                ligneRepo.findByOrdonnanceIdOrdonnance(ordonnanceId)
         );
     }
 
@@ -53,9 +51,10 @@ public class LigneOrdonnanceService {
             Long ligneId
     ) {
 
-        return ordonnanceMapper.toLigneResponseDTO(
-                findLigneOrThrow(ordonnanceId, ligneId)
-        );
+        LigneOrdonnance ligne =
+                findLigneOrThrow(ordonnanceId, ligneId);
+
+        return mapper.toLigneResponseDTO(ligne);
     }
 
     // ================= CREATE =================
@@ -66,30 +65,28 @@ public class LigneOrdonnanceService {
             Authentication auth
     ) {
 
-        Gynecologue gyneco = getGyneco(auth);
+        Gynecologue gyneco =
+                authService.getCurrentGyneco(auth);
 
         Ordonnance ordonnance =
                 ordonnanceService.findOrThrow(ordonnanceId);
 
-        ordonnanceService.validateConsultationAppartientAuGyneco(
-                ordonnance.getConsultation(),
-                gyneco
+        authService.getConsultationIfAuthorized(
+                ordonnance.getConsultation().getIdConsultation(),
+                gyneco.getId()
         );
 
         Medicament medicament =
-                medicamentService.findOrThrow(
-                        dto.getMedicamentId()
-                );
+                medicamentService.findOrThrow(dto.getMedicamentId());
 
         LigneOrdonnance ligne =
-                ordonnanceMapper.toLigneEntity(dto);
+                mapper.toLigneEntity(dto);
 
         ligne.setMedicament(medicament);
-
-        ordonnance.ajouterLigneOrdonance(ligne);
+        ligne.setOrdonnance(ordonnance);
 
         LigneOrdonnance saved =
-                ligneOrdonnanceRepository.save(ligne);
+                ligneRepo.save(ligne);
 
         log.info(
                 "Ligne {} ajoutée à l'ordonnance {}",
@@ -97,7 +94,7 @@ public class LigneOrdonnanceService {
                 ordonnanceId
         );
 
-        return ordonnanceMapper.toLigneResponseDTO(saved);
+        return mapper.toLigneResponseDTO(saved);
     }
 
     // ================= UPDATE =================
@@ -109,31 +106,29 @@ public class LigneOrdonnanceService {
             Authentication auth
     ) {
 
-        Gynecologue gyneco = getGyneco(auth);
+        Gynecologue gyneco =
+                authService.getCurrentGyneco(auth);
 
         LigneOrdonnance ligne =
                 findLigneOrThrow(ordonnanceId, ligneId);
 
-        ordonnanceService.validateConsultationAppartientAuGyneco(
-                ligne.getOrdonnance().getConsultation(),
-                gyneco
+        authService.getConsultationIfAuthorized(
+                ligne.getOrdonnance().getConsultation().getIdConsultation(),
+                gyneco.getId()
         );
 
         Medicament medicament =
-                medicamentService.findOrThrow(
-                        dto.getMedicamentId()
-                );
+                medicamentService.findOrThrow(dto.getMedicamentId());
 
-        ordonnanceMapper.updateLigneFromDto(dto, ligne);
-
+        mapper.updateLigneFromDto(dto, ligne);
         ligne.setMedicament(medicament);
 
         LigneOrdonnance updated =
-                ligneOrdonnanceRepository.save(ligne);
+                ligneRepo.save(ligne);
 
         log.info("Ligne {} mise à jour", ligneId);
 
-        return ordonnanceMapper.toLigneResponseDTO(updated);
+        return mapper.toLigneResponseDTO(updated);
     }
 
     // ================= DELETE =================
@@ -144,20 +139,18 @@ public class LigneOrdonnanceService {
             Authentication auth
     ) {
 
-        Gynecologue gyneco = getGyneco(auth);
+        Gynecologue gyneco =
+                authService.getCurrentGyneco(auth);
 
         LigneOrdonnance ligne =
                 findLigneOrThrow(ordonnanceId, ligneId);
 
-        ordonnanceService.validateConsultationAppartientAuGyneco(
-                ligne.getOrdonnance().getConsultation(),
-                gyneco
+        authService.getConsultationIfAuthorized(
+                ligne.getOrdonnance().getConsultation().getIdConsultation(),
+                gyneco.getId()
         );
 
-        ligne.getOrdonnance()
-                .supprimerLigneOrdonance(ligne);
-
-        ligneOrdonnanceRepository.delete(ligne);
+        ligneRepo.delete(ligne);
 
         log.info(
                 "Ligne {} supprimée de l'ordonnance {}",
@@ -174,11 +167,10 @@ public class LigneOrdonnanceService {
     ) {
 
         LigneOrdonnance ligne =
-                ligneOrdonnanceRepository.findById(ligneId)
+                ligneRepo.findById(ligneId)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Ligne introuvable avec l'id : "
-                                                + ligneId
+                                        "Ligne introuvable avec l'id : " + ligneId
                                 )
                         );
 
@@ -187,25 +179,11 @@ public class LigneOrdonnanceService {
                 .equals(ordonnanceId)) {
 
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
                     "Cette ligne n'appartient pas à cette ordonnance"
             );
         }
 
         return ligne;
-    }
-
-    private Gynecologue getGyneco(Authentication auth) {
-
-        UserDetailsImpl user =
-                (UserDetailsImpl) auth.getPrincipal();
-
-        return gynecologueRepo.findByUser_Id(user.getId())
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Gynécologue non trouvé"
-                        )
-                );
     }
 }

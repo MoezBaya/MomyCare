@@ -46,9 +46,8 @@ public class OrdonnanceController {
     @GetMapping
     @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<List<OrdonnanceResponseDTO>> getOrdonnancesByConsultation(
-            @PathVariable Long consultationId) {
-        return ResponseEntity.ok(
-                ordonnanceService.getOrdonnancesByConsultation(consultationId));
+            Authentication auth, @PathVariable Long consultationId) {
+        return ResponseEntity.ok(ordonnanceService.getOrdonnancesByConsultation(auth , consultationId));
     }
 
     // DELETE — supprimer une ordonnance
