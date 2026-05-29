@@ -31,9 +31,6 @@ public class DossierMedicalService {
     private final SecurityContextService security;
     private final AccessControlService access;
 
-    // ─────────────────────────────────────────────
-    // CREATE dossier for patient (gyneco)
-    // ─────────────────────────────────────────────
     public DossierMedicaleResponseDTO createForPatiente(
             Authentication auth,
             Long patienteId,
@@ -41,9 +38,7 @@ public class DossierMedicalService {
     ) {
 
         Gynecologue gyneco = security.getGyneco(auth);
-
         access.checkRelationActive(patienteId, gyneco.getId());
-
         Patiente patiente = findPatienteOrThrow(patienteId);
 
         if (dossierRepo.existsByPatiente_Id(patienteId)) {
@@ -60,9 +55,6 @@ public class DossierMedicalService {
         return mapper.toDto(dossierRepo.save(dossier));
     }
 
-    // ─────────────────────────────────────────────
-    // GET dossier by patient (gyneco)
-    // ─────────────────────────────────────────────
     @Transactional(readOnly = true)
     public DossierMedicaleResponseDTO getByPatienteId(
             Authentication auth,
@@ -70,9 +62,7 @@ public class DossierMedicalService {
     ) {
 
         Gynecologue gyneco = security.getGyneco(auth);
-
         access.checkRelationActive(patienteId, gyneco.getId());
-
         DossierMedicale dossier = findDossierOrThrow(patienteId);
 
         return mapper.toDto(dossier);

@@ -1,6 +1,5 @@
 package com.example.MomyCare.service;
 
-import com.example.MomyCare.dao.ConsultationRepository;
 import com.example.MomyCare.dao.ImagerieRepository;
 import com.example.MomyCare.dto.Imagerie.ImagerieRequestDTO;
 import com.example.MomyCare.dto.Imagerie.ImagerieResponseDTO;
@@ -8,14 +7,12 @@ import com.example.MomyCare.mapper.ImagerieMapper;
 import com.example.MomyCare.model.Consultation;
 import com.example.MomyCare.model.Gynecologue;
 import com.example.MomyCare.model.Imagerie;
-import com.example.MomyCare.security.service.AuthorizationService;
+import com.example.MomyCare.security.service.SecurityContextService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,10 +22,10 @@ import java.util.List;
 @Transactional
 public class ImagerieService {
 
-    private final ImagerieRepository imagerieRepo;
-    private final ImagerieMapper mapper;
-    private final FileStorageService fileStorageService;
-    private final AuthorizationService authService;
+    private final ImagerieRepository   imagerieRepo;
+    private final ImagerieMapper       mapper;
+    private final FileStorageService   fileStorageService;
+    private final SecurityContextService security;
 
     public ImagerieResponseDTO addImagerie(
             Authentication auth,
@@ -36,15 +33,8 @@ public class ImagerieService {
             ImagerieRequestDTO dto,
             MultipartFile file
     ) {
-
-        Gynecologue gyneco =
-                authService.getCurrentGyneco(auth);
-
-        Consultation consultation =
-                authService.getConsultationIfAuthorized(
-                        consultationId,
-                        gyneco.getId()
-                );
+        Gynecologue  gyneco       = security.getGyneco(auth);
+        Consultation consultation = security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         String path = fileStorageService.saveFile(file);
 
@@ -57,21 +47,14 @@ public class ImagerieService {
         return mapper.toDto(imagerieRepo.save(img));
     }
 
+    @Transactional(readOnly = true)
     public List<ImagerieResponseDTO> getByConsultation(
             Authentication auth,
             Long consultationId
     ) {
+        Gynecologue gyneco = security.getGyneco(auth);
+        security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
-        Gynecologue gyneco =
-                authService.getCurrentGyneco(auth);
-
-        authService.getConsultationIfAuthorized(
-                consultationId,
-                gyneco.getId()
-        );
-
-        return mapper.toDtoList(
-                imagerieRepo.findByConsultation_IdConsultation(consultationId)
-        );
+        return mapper.toDtoList(imagerieRepo.findByConsultation_IdConsultation(consultationId));
     }
 }

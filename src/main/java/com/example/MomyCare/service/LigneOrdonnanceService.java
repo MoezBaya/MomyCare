@@ -1,15 +1,18 @@
 package com.example.MomyCare.service;
 
-import com.example.MomyCare.dao.GynecologueRepository;
 import com.example.MomyCare.dao.LigneOrdonnanceRepository;
 import com.example.MomyCare.dto.ligneOrdonnance.LigneOrdonnanceRequestDTO;
 import com.example.MomyCare.dto.ligneOrdonnance.LigneOrdonnanceResponseDTO;
 import com.example.MomyCare.exception.ResourceNotFoundException;
 import com.example.MomyCare.mapper.OrdonnanceMapper;
-import com.example.MomyCare.model.*;
-import com.example.MomyCare.security.service.AuthorizationService;
+import com.example.MomyCare.model.Gynecologue;
+import com.example.MomyCare.model.LigneOrdonnance;
+import com.example.MomyCare.model.Medicament;
+import com.example.MomyCare.model.Ordonnance;
+import com.example.MomyCare.security.service.SecurityContextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,80 +27,47 @@ import java.util.List;
 public class LigneOrdonnanceService {
 
     private final LigneOrdonnanceRepository ligneRepo;
-    private final OrdonnanceService ordonnanceService;
-    private final MedicamentService medicamentService;
-    private final OrdonnanceMapper mapper;
-    private final AuthorizationService authService;
+    private final OrdonnanceService         ordonnanceService;
+    private final MedicamentService         medicamentService;
+    private final OrdonnanceMapper          mapper;
+    private final SecurityContextService    security;
 
-    // ================= GET ALL =================
-
-    @Transactional(readOnly = true)
-    public List<LigneOrdonnanceResponseDTO> getLignesByOrdonnance(
-            Long ordonnanceId
-    ) {
-
-        Ordonnance ordonnance = ordonnanceService.findOrThrow(ordonnanceId);
-
-        return mapper.toLigneResponseDTOList(
-                ligneRepo.findByOrdonnanceIdOrdonnance(ordonnanceId)
-        );
-    }
-
-    // ================= GET BY ID =================
+    // ─── Lecture ──────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public LigneOrdonnanceResponseDTO getLigneById(
-            Long ordonnanceId,
-            Long ligneId
-    ) {
-
-        LigneOrdonnance ligne =
-                findLigneOrThrow(ordonnanceId, ligneId);
-
-        return mapper.toLigneResponseDTO(ligne);
+    public List<LigneOrdonnanceResponseDTO> getLignesByOrdonnance(Long ordonnanceId) {
+        ordonnanceService.findOrThrow(ordonnanceId);
+        return mapper.toLigneResponseDTOList(ligneRepo.findByOrdonnanceIdOrdonnance(ordonnanceId));
     }
 
-    // ================= CREATE =================
+    @Transactional(readOnly = true)
+    public LigneOrdonnanceResponseDTO getLigneById(Long ordonnanceId, Long ligneId) {
+        return mapper.toLigneResponseDTO(findLigneOrThrow(ordonnanceId, ligneId));
+    }
+
+    // ─── Ajout ────────────────────────────────────────────────────────────────
 
     public LigneOrdonnanceResponseDTO addLigne(
             Long ordonnanceId,
             LigneOrdonnanceRequestDTO dto,
             Authentication auth
     ) {
+        Gynecologue gyneco     = security.getGyneco(auth);
+        Ordonnance  ordonnance = ordonnanceService.findOrThrow(ordonnanceId);
+        security.getConsultationIfAuthorized(
+                ordonnance.getConsultation().getIdConsultation(), gyneco.getId());
 
-        Gynecologue gyneco =
-                authService.getCurrentGyneco(auth);
-
-        Ordonnance ordonnance =
-                ordonnanceService.findOrThrow(ordonnanceId);
-
-        authService.getConsultationIfAuthorized(
-                ordonnance.getConsultation().getIdConsultation(),
-                gyneco.getId()
-        );
-
-        Medicament medicament =
-                medicamentService.findOrThrow(dto.getMedicamentId());
-
-        LigneOrdonnance ligne =
-                mapper.toLigneEntity(dto);
-
+        Medicament    medicament = medicamentService.findOrThrow(dto.getMedicamentId());
+        LigneOrdonnance ligne   = mapper.toLigneEntity(dto);
         ligne.setMedicament(medicament);
         ligne.setOrdonnance(ordonnance);
 
-        LigneOrdonnance saved =
-                ligneRepo.save(ligne);
-
-        log.info(
-                "Ligne {} ajoutée à l'ordonnance {}",
-                saved.getIdLigneOrdonnance(),
-                ordonnanceId
-        );
-
+        LigneOrdonnance saved = ligneRepo.save(ligne);
+        log.info("Ligne {} ajoutée à l'ordonnance {}", saved.getIdLigneOrdonnance(), ordonnanceId);
         return mapper.toLigneResponseDTO(saved);
     }
 
-    // ================= UPDATE =================
+    // ─── Mise à jour ──────────────────────────────────────────────────────────
 
     public LigneOrdonnanceResponseDTO updateLigne(
             Long ordonnanceId,
@@ -105,85 +75,44 @@ public class LigneOrdonnanceService {
             LigneOrdonnanceRequestDTO dto,
             Authentication auth
     ) {
+        Gynecologue     gyneco = security.getGyneco(auth);
+        LigneOrdonnance ligne  = findLigneOrThrow(ordonnanceId, ligneId);
+        security.getConsultationIfAuthorized(
+                ligne.getOrdonnance().getConsultation().getIdConsultation(), gyneco.getId());
 
-        Gynecologue gyneco =
-                authService.getCurrentGyneco(auth);
-
-        LigneOrdonnance ligne =
-                findLigneOrThrow(ordonnanceId, ligneId);
-
-        authService.getConsultationIfAuthorized(
-                ligne.getOrdonnance().getConsultation().getIdConsultation(),
-                gyneco.getId()
-        );
-
-        Medicament medicament =
-                medicamentService.findOrThrow(dto.getMedicamentId());
-
+        Medicament medicament = medicamentService.findOrThrow(dto.getMedicamentId());
         mapper.updateLigneFromDto(dto, ligne);
         ligne.setMedicament(medicament);
 
-        LigneOrdonnance updated =
-                ligneRepo.save(ligne);
-
+        LigneOrdonnance updated = ligneRepo.save(ligne);
         log.info("Ligne {} mise à jour", ligneId);
-
         return mapper.toLigneResponseDTO(updated);
     }
 
-    // ================= DELETE =================
+    // ─── Suppression ──────────────────────────────────────────────────────────
 
-    public void deleteLigne(
-            Long ordonnanceId,
-            Long ligneId,
-            Authentication auth
-    ) {
-
-        Gynecologue gyneco =
-                authService.getCurrentGyneco(auth);
-
-        LigneOrdonnance ligne =
-                findLigneOrThrow(ordonnanceId, ligneId);
-
-        authService.getConsultationIfAuthorized(
-                ligne.getOrdonnance().getConsultation().getIdConsultation(),
-                gyneco.getId()
-        );
+    public void deleteLigne(Long ordonnanceId, Long ligneId, Authentication auth) {
+        Gynecologue     gyneco = security.getGyneco(auth);
+        LigneOrdonnance ligne  = findLigneOrThrow(ordonnanceId, ligneId);
+        security.getConsultationIfAuthorized(
+                ligne.getOrdonnance().getConsultation().getIdConsultation(), gyneco.getId());
 
         ligneRepo.delete(ligne);
-
-        log.info(
-                "Ligne {} supprimée de l'ordonnance {}",
-                ligneId,
-                ordonnanceId
-        );
+        log.info("Ligne {} supprimée de l'ordonnance {}", ligneId, ordonnanceId);
     }
 
-    // ================= HELPERS =================
+    // ─── Helper privé ─────────────────────────────────────────────────────────
 
-    private LigneOrdonnance findLigneOrThrow(
-            Long ordonnanceId,
-            Long ligneId
-    ) {
+    private LigneOrdonnance findLigneOrThrow(Long ordonnanceId, Long ligneId) {
+        LigneOrdonnance ligne = ligneRepo.findById(ligneId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Ligne introuvable avec l'id : " + ligneId));
 
-        LigneOrdonnance ligne =
-                ligneRepo.findById(ligneId)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Ligne introuvable avec l'id : " + ligneId
-                                )
-                        );
-
-        if (!ligne.getOrdonnance()
-                .getIdOrdonnance()
-                .equals(ordonnanceId)) {
-
+        if (!ligne.getOrdonnance().getIdOrdonnance().equals(ordonnanceId)) {
             throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "Cette ligne n'appartient pas à cette ordonnance"
-            );
+                    HttpStatus.BAD_REQUEST,
+                    "Cette ligne n'appartient pas à cette ordonnance");
         }
-
         return ligne;
     }
 }

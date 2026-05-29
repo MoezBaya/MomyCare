@@ -7,6 +7,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Vérifie que la relation patiente ↔ gynécologue est active
+ * avant tout accès aux données médicales d'une patiente.
+ */
 @Service
 @RequiredArgsConstructor
 public class AccessControlService {
@@ -14,16 +18,12 @@ public class AccessControlService {
     private final RelationRepository relationRepo;
 
     public void checkRelationActive(Long patienteId, Long gynecoId) {
-        relationRepo
-                .findByPatiente_IdAndGynecologue_IdAndStatus(
-                        patienteId,
-                        gynecoId,
-                        StatutRelation.ACTIVE
-                )
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.FORBIDDEN,
-                                "Aucune relation active avec cette patiente"
-                        ));
+        boolean exists = relationRepo.existsByPatiente_IdAndGynecologue_IdAndStatus(
+                patienteId, gynecoId, StatutRelation.ACTIVE);
+
+        if (!exists) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Aucune relation active avec cette patiente");
+        }
     }
 }

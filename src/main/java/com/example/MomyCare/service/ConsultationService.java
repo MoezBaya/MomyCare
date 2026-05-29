@@ -27,21 +27,16 @@ public class ConsultationService {
 
     private final ConsultationRepository consultationRepository;
     private final ConsultationMapper mapper;
-
     private final SecurityContextService security;
     private final AccessControlService access;
     private final DossierMedicaleRepository dossierRepo;
 
-    // ─────────────────────────────────────────────
-    // GET: consultations d'une patiente (gyneco)
-    // ─────────────────────────────────────────────
     @Transactional(readOnly = true)
     public List<ConsultationResponseDTO> getConsultationsByPatiente(
             Authentication auth,
             Long patienteId
     ) {
         Gynecologue gyneco = security.getGyneco(auth);
-
         access.checkRelationActive(patienteId, gyneco.getId());
 
         return consultationRepository
@@ -51,20 +46,14 @@ public class ConsultationService {
                 .toList();
     }
 
-    // ─────────────────────────────────────────────
-    // POST: add consultation
-    // ─────────────────────────────────────────────
     @Transactional
     public ConsultationResponseDTO addConsultation(
             Authentication auth,
             ConsultationRequestDTO dto
     ) {
         Gynecologue gyneco = security.getGyneco(auth);
-
         access.checkRelationActive(dto.getPatienteId(), gyneco.getId());
-
         DossierMedicale dossier = findDossierOrThrow(dto.getPatienteId());
-
         Consultation consultation = mapper.toEntity(dto);
         consultation.setGynecologue(gyneco);
         consultation.setDossierMedicale(dossier);
@@ -72,21 +61,14 @@ public class ConsultationService {
         return mapper.toDto(consultationRepository.save(consultation));
     }
 
-    // ─────────────────────────────────────────────
-    // GET: consultations du patient connecté
-    // ─────────────────────────────────────────────
     @Transactional(readOnly = true)
     public List<ConsultationResponseDTO> getMesConsultations(Authentication auth) {
 
         Patiente patiente = security.getPatiente(auth);
-
         DossierMedicale dossier = patiente.getDossierMedicale();
 
         if (dossier == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Aucun dossier médical trouvé"
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aucun dossier médical trouvé");
         }
 
         return dossier.getConsultations()
@@ -95,17 +77,12 @@ public class ConsultationService {
                 .toList();
     }
 
-    // ─────────────────────────────────────────────
-    // HELPERS
-    // ─────────────────────────────────────────────
     private DossierMedicale findDossierOrThrow(Long patienteId) {
 
         return dossierRepo.findByPatiente_Id(patienteId)
-                .orElseThrow(() ->
-                        new ResponseStatusException(
+                .orElseThrow(() -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
-                                "Dossier médical introuvable"
-                        )
+                                "Dossier médical introuvable")
                 );
     }
 }

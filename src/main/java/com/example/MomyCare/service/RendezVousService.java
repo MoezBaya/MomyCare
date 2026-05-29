@@ -1,11 +1,21 @@
 package com.example.MomyCare.service;
 
-import com.example.MomyCare.dao.*;
+import com.example.MomyCare.dao.DossierMedicaleRepository;
+import com.example.MomyCare.dao.GynecologueRepository;
+import com.example.MomyCare.dao.PatienteRepository;
+import com.example.MomyCare.dao.RelationRepository;
+import com.example.MomyCare.dao.RendezVousRepository;
 import com.example.MomyCare.dto.rdv.RendezVousRequestDTO;
 import com.example.MomyCare.dto.rdv.RendezVousResponseDTO;
 import com.example.MomyCare.mapper.RendezVousMapper;
-import com.example.MomyCare.model.*;
-import com.example.MomyCare.security.service.UserDetailsImpl;
+import com.example.MomyCare.model.DossierMedicale;
+import com.example.MomyCare.model.Gynecologue;
+import com.example.MomyCare.model.Patiente;
+import com.example.MomyCare.model.Relation;
+import com.example.MomyCare.model.RendezVous;
+import com.example.MomyCare.model.StatutRelation;
+import com.example.MomyCare.model.StatusRDV;
+import com.example.MomyCare.security.service.SecurityContextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,25 +34,23 @@ import java.util.List;
 @Transactional
 public class RendezVousService {
 
-    private final RendezVousRepository rdvRepo;
-    private final PatienteRepository patienteRepo;
-    private final GynecologueRepository gynecologueRepo;
-    private final RelationRepository relationRepo;
+    private final RendezVousRepository   rdvRepo;
+    private final PatienteRepository     patienteRepo;
+    private final GynecologueRepository  gynecologueRepo;
+    private final RelationRepository     relationRepo;
     private final DossierMedicaleRepository dossierRepo;
-    private final RendezVousMapper mapper;
+    private final RendezVousMapper       mapper;
+    private final SecurityContextService security;
 
     // ─── Patiente : demander un RDV ───────────────────────────────────────────
-    public RendezVousResponseDTO demanderRdv(Authentication auth,
-                                             RendezVousRequestDTO dto) {
-        Patiente patiente = getPatiente(auth);
-        Gynecologue gyneco = gynecologueRepo.findById(dto.getGynecologueId())
+
+    public RendezVousResponseDTO demanderRdv(Authentication auth, RendezVousRequestDTO dto) {
+        Patiente    patiente = security.getPatiente(auth);
+        Gynecologue gyneco   = gynecologueRepo.findById(dto.getGynecologueId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
 
-        // Vérifier qu'il n'y a pas déjà un RDV EN_ATTENTE avec ce gynéco
-        boolean dejaEnAttente = rdvRepo.existsByPatienteAndGynecologueAndStatusRDV(
-                patiente, gyneco, StatusRDV.EN_ATTENTE);
-        if (dejaEnAttente) {
+        if (rdvRepo.existsByPatienteAndGynecologueAndStatusRDV(patiente, gyneco, StatusRDV.EN_ATTENTE)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Vous avez déjà un RDV en attente avec ce gynécologue");
         }
@@ -58,31 +66,25 @@ public class RendezVousService {
         return mapper.toDto(rdvRepo.save(rdv));
     }
 
+    // ─── Gynéco : accepter ou refuser ────────────────────────────────────────
 
-    // ─── Gynéco : accepter ou refuser le RDV ──────────────────────────────────
-    public RendezVousResponseDTO repondreRdv(Authentication auth,
-                                             Long rdvId,
-                                             boolean accepter) {
-        Gynecologue gyneco = getGyneco(auth);
+    public RendezVousResponseDTO repondreRdv(Authentication auth, Long rdvId, boolean accepter) {
+        Gynecologue gyneco = security.getGyneco(auth);
 
         RendezVous rdv = rdvRepo.findById(rdvId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "RDV non trouvé"));
 
-        // Vérifier que ce RDV appartient bien à ce gynéco
         if (!rdv.getGynecologue().getId().equals(gyneco.getId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Ce RDV ne vous appartient pas");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ce RDV ne vous appartient pas");
         }
 
         if (rdv.getStatusRDV() != StatusRDV.EN_ATTENTE) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Ce RDV a déjà été traité");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce RDV a déjà été traité");
         }
 
         if (accepter) {
             rdv.setStatusRDV(StatusRDV.CONFIRME);
-            // Créer la relation automatiquement
             creerRelationEtDossier(rdv.getPatiente(), gyneco);
         } else {
             rdv.setStatusRDV(StatusRDV.REFUSER);
@@ -91,90 +93,53 @@ public class RendezVousService {
         return mapper.toDto(rdvRepo.save(rdv));
     }
 
-    // ─── Gynéco : voir ses RDV en attente ─────────────────────────────────────
+    // ─── Gynéco : voir ses RDV en attente ────────────────────────────────────
+
     @Transactional(readOnly = true)
     public List<RendezVousResponseDTO> getMesRdvEnAttente(Authentication auth) {
-        Gynecologue gyneco = getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco(auth);
         return mapper.toDtoList(
                 rdvRepo.findByGynecologueAndStatusRDV(gyneco, StatusRDV.EN_ATTENTE));
     }
 
-    // ─── Patiente : voir ses RDV ───────────────────────────────────────────────
+    // ─── Patiente : voir ses RDV ──────────────────────────────────────────────
+
     @Transactional(readOnly = true)
     public List<RendezVousResponseDTO> getMesRdv(Authentication auth) {
-        Patiente patiente = getPatiente(auth);
+        Patiente patiente = security.getPatiente(auth);
         return mapper.toDtoList(rdvRepo.findByPatiente(patiente));
     }
 
-    // ─── Logique automatique : Relation + Dossier ─────────────────────────────
-    private void creerRelationEtDossier(
-            Patiente patiente,
-            Gynecologue gyneco
-    ) {
+    // ─── Logique interne : Relation + Dossier médical ────────────────────────
 
-        // ================= RELATION =================
+    private void creerRelationEtDossier(Patiente patiente, Gynecologue gyneco) {
 
-        boolean relationExiste = relationRepo
-                .existsByPatiente_IdAndGynecologue_IdAndStatus(
-                        patiente.getId(),
-                        gyneco.getId(),
-                        StatutRelation.ACTIVE
-                );
+        boolean relationExiste = relationRepo.existsByPatiente_IdAndGynecologue_IdAndStatus(
+                patiente.getId(), gyneco.getId(), StatutRelation.ACTIVE);
 
         if (!relationExiste) {
-
-            Relation relation = Relation.builder()
-                    .patiente(patiente)
-                    .gynecologue(gyneco)
-                    .status(StatutRelation.ACTIVE)
-                    .dateDebut(LocalDate.now())
-                    .build();
-
             try {
-
-                relationRepo.save(relation);
-
+                relationRepo.save(Relation.builder()
+                        .patiente(patiente)
+                        .gynecologue(gyneco)
+                        .status(StatutRelation.ACTIVE)
+                        .dateDebut(LocalDate.now())
+                        .build());
             } catch (DataIntegrityViolationException ignored) {
-                log.warn(
-                        "Relation déjà créée pour la patiente {} et le gynécologue {}",
-                        patiente.getId(),
-                        gyneco.getId()
-                );
+                log.warn("Relation déjà existante pour patiente {} / gynéco {}",
+                        patiente.getId(), gyneco.getId());
             }
         }
-
-        // ================= DOSSIER MÉDICAL =================
 
         if (patiente.getDossierMedicale() == null) {
-
-            DossierMedicale dossier = DossierMedicale.builder()
-                    .patiente(patiente)
-                    .derniereModificationPar(gyneco)
-                    .build();
-
             try {
-
-                dossierRepo.save(dossier);
-
+                dossierRepo.save(DossierMedicale.builder()
+                        .patiente(patiente)
+                        .derniereModificationPar(gyneco)
+                        .build());
             } catch (DataIntegrityViolationException ignored) {
-                log.warn("Dossier déjà créée pour la patiente {}", patiente.getId());
+                log.warn("Dossier déjà existant pour patiente {}", patiente.getId());
             }
         }
-    }
-
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
-    private Patiente getPatiente(Authentication auth) {
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        return patienteRepo.findByUser_Id(user.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patiente non trouvée"));
-    }
-
-    private Gynecologue getGyneco(Authentication auth) {
-        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
-        return gynecologueRepo.findByUser_Id(user.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
     }
 }

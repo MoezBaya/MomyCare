@@ -21,15 +21,10 @@ public class AnalyseLaboratoire {
     private Long id;
 
     private LocalDate dateAnalyse;
-
     private String type; // NFS, Glycémie...
-
     private String resultat;
-
     private String fichierNom;
-
     private String fichierType;
-
     private String fichierPath;
 
     @ManyToOne(fetch = FetchType.LAZY)
