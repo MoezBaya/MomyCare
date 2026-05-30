@@ -15,19 +15,14 @@ public class ConsultationRequestDTO {
 
     @NotNull @DecimalMin("0.0")
     private Double tension;
-
     @NotNull @Min(0) @Max(300)
     private Integer pouls;
-
     @NotNull @DecimalMin("0.0") @DecimalMax("100.0")
     private Double saturationOxygene;
-
     @NotNull @DecimalMin("30.0") @DecimalMax("45.0")
     private Double temperature;
-
     @Min(0) @Max(300)
     private Integer poulsBebe;
-
     @NotNull(message = "L'ID de la patiente est obligatoire")
     private Long patienteId;
 }

@@ -18,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 public class Gynecologue  {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(unique = true, nullable = false)
@@ -39,13 +39,10 @@ public class Gynecologue  {
     private List<RendezVous> rendezVousList = new ArrayList<>();
 
     @OneToOne(cascade = CascadeType.ALL)
+    @MapsId
     private User user;
 
     @OneToMany(mappedBy = "gynecologue" , cascade = CascadeType.ALL , orphanRemoval = true)
     private List<Relation> relations = new ArrayList<>();
-
-    @OneToMany(mappedBy = "gynecologue" ,cascade = CascadeType.ALL , orphanRemoval = true)
-    private List<Patiente> patiente = new ArrayList<>();
-
 
 }

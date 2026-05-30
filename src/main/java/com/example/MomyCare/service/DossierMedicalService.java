@@ -32,12 +32,11 @@ public class DossierMedicalService {
     private final AccessControlService access;
 
     public DossierMedicaleResponseDTO createForPatiente(
-            Authentication auth,
             Long patienteId,
             CreateDossierMedicaleDTO dto
     ) {
 
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
         access.checkRelationActive(patienteId, gyneco.getId());
         Patiente patiente = findPatienteOrThrow(patienteId);
 
@@ -61,7 +60,7 @@ public class DossierMedicalService {
             Long patienteId
     ) {
 
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
         access.checkRelationActive(patienteId, gyneco.getId());
         DossierMedicale dossier = findDossierOrThrow(patienteId);
 
@@ -72,12 +71,11 @@ public class DossierMedicalService {
     // UPDATE dossier
     // ─────────────────────────────────────────────
     public DossierMedicaleResponseDTO update(
-            Authentication auth,
             Long patienteId,
             CreateDossierMedicaleDTO dto
     ) {
 
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
 
         access.checkRelationActive(patienteId, gyneco.getId());
 
@@ -101,7 +99,7 @@ public class DossierMedicalService {
     @Transactional(readOnly = true)
     public DossierMedicaleResponseDTO getMyDossier(Authentication auth) {
 
-        Patiente patiente = security.getPatiente(auth);
+        Patiente patiente = security.getPatiente();
 
         DossierMedicale dossier = findDossierOrThrow(patiente.getId());
 

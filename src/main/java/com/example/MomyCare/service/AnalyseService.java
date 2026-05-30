@@ -33,7 +33,7 @@ public class AnalyseService {
             AnalyseRequestDTO dto,
             MultipartFile file
     ) {
-        Gynecologue  gyneco       = security.getGyneco(auth);
+        Gynecologue  gyneco       = security.getGyneco();
         Consultation consultation = security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         String path = fileStorageService.saveFile(file);
@@ -53,7 +53,7 @@ public class AnalyseService {
             Authentication auth,
             Long consultationId
     ) {
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
         security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         return mapper.toDtoList(analyseRepo.findByConsultation_IdConsultation(consultationId));

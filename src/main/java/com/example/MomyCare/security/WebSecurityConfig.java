@@ -1,10 +1,8 @@
 package com.example.MomyCare.security;
 
-
 import com.example.MomyCare.security.jwt.AuthEntryPointJwt;
 import com.example.MomyCare.security.jwt.AuthTokenFilter;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,81 +27,96 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class WebSecurityConfig {
 
-    private final UserDetailsService userDetailsService;
-    private final AuthEntryPointJwt unauthorizedHandler;
     private final AuthTokenFilter authTokenFilter;
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        return http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+
+                        // AUTH
+                        .requestMatchers("/api/auth/**").permitAll()
+
+                        // DISPONIBILITES (IMPORTANT FIX)
+                        .requestMatchers("/api/disponibilites/gyneco/**")
+                        .hasAnyRole("PATIENTE", "GYNECOLOGUE")
+
+                        .requestMatchers("/api/disponibilites/mes-disponibilites")
+                        .hasRole("GYNECOLOGUE")
+
+                        .requestMatchers("/api/disponibilites/**")
+                        .hasRole("GYNECOLOGUE")
+
+
+                        // ================= GYNECO PROFILE =================
+                        .requestMatchers("/api/gynecologues/me").hasRole("GYNECOLOGUE")
+                        .requestMatchers("/api/gynecologues/patientes").hasRole("GYNECOLOGUE")
+
+                        // ================= DISPONIBILITES =================
+                        .requestMatchers("/api/disponibilites/gyneco/**")
+                        .hasAnyRole("GYNECOLOGUE", "PATIENTE")
+
+                        .requestMatchers("/api/disponibilites/mes-disponibilites")
+                        .hasRole("GYNECOLOGUE")
+
+                        .requestMatchers("/api/disponibilites/**")
+                        .hasRole("GYNECOLOGUE")
+
+                        // ================= CONSULTATIONS =================
+                        .requestMatchers("/api/consultations/**")
+                        .hasAnyRole("GYNECOLOGUE", "PATIENTE")
+
+                        // ================= DOSSIER =================
+                        .requestMatchers("/api/dossiers/**")
+                        .hasAnyRole("GYNECOLOGUE", "PATIENTE")
+
+                        // ================= RDV =================
+                        .requestMatchers("/api/rdv/**")
+                        .hasAnyRole("GYNECOLOGUE", "PATIENTE")
+
+                        // ================= ORDONNANCES =================
+                        .requestMatchers("/api/consultations/*/ordonnances/**")
+                        .hasAnyRole("GYNECOLOGUE", "PATIENTE")
+
+                        // ================= MEDICAMENTS =================
+                        .requestMatchers("/api/medicaments/**")
+                        .hasAnyRole("GYNECOLOGUE", "PATIENTE")
+
+                        // ====================== Relation ==================
+                        .requestMatchers("/api/relations/mes-relations")
+                        .hasRole("PATIENTE")
+
+                        .requestMatchers("/api/relations/demandes")
+                        .hasRole("GYNECOLOGUE")
+
+                        .requestMatchers("/api/relations/*/terminer")
+                        .hasRole("GYNECOLOGUE")
+
+                        .requestMatchers("/api/relations/**")
+                        .authenticated()
+
+                        // ===================== PAtiente =================
+                        .requestMatchers("/api/patientes/mes-patientes")
+                        .hasRole("GYNECOLOGUE")
+
+                        // ================= DEFAULT =================
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
 
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
-    }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-            throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                                // PUBLIC
-                                .requestMatchers(
-                                        "/api/auth/**",
-                                        "/api/public/**",
-                                        "/api/image/**",
-                                        "/error",
-                                        "/h2-console/**",
-                                        "/v3/api-docs/**",
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html"
-                                ).permitAll()
-
-                                // PATIENTE
-                                .requestMatchers(
-                                        "/api/dossiers/mon-dossier",
-                                        "/api/auth/**",
-                                        "/api/patiente/**",
-                                        "/api/relations/follow/**",
-                                        "/api/relations/mes-relations"
-                                ).hasRole("PATIENTE")
-
-                                // GYNECO
-                                .requestMatchers(
-                                        "/api/auth/**",
-                                        "/api/dossiers/patiente/**",
-                                        "/api/relations/demandes",
-                                        "/api/relations/*/repondre",
-                                        "/api/consultations/**"
-                                ).hasRole("GYNECOLOGUE")
-
-                                // ADMIN
-                                .requestMatchers(
-                                        "/api/admin/**"
-                                ).hasRole("ADMIN")
-
-                                .anyRequest().authenticated()
-                        )
-
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)
-                .headers(headers -> headers
-                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
-                );
-
-        return http.build();
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

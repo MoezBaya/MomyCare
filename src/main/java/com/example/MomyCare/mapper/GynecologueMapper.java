@@ -60,8 +60,6 @@ public interface GynecologueMapper {
         @Mapping(target = "rendezVousList", ignore = true)
         @Mapping(target = "disponibilites", ignore = true)
         @Mapping(target = "relations", ignore = true)
-        @Mapping(target = "patiente", ignore = true)
-
         Gynecologue toEntity(GynecologueSignupRequest dto);
 
 

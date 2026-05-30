@@ -4,6 +4,7 @@ import com.example.MomyCare.dto.Analyse.AnalyseRequestDTO;
 import com.example.MomyCare.dto.Analyse.AnalyseResponseDTO;
 import com.example.MomyCare.service.AnalyseService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,14 +18,17 @@ public class AnalyseController {
 
     private final AnalyseService analyseService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public AnalyseResponseDTO add(
             Authentication auth,
             @PathVariable Long id,
-            @RequestPart MultipartFile file,
-            @RequestPart AnalyseRequestDTO dto
-    ) {
-        return analyseService.addAnalyse(auth ,id, dto, file);
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("dto") String dtoJson
+    ) throws com.fasterxml.jackson.core.JsonProcessingException {
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        AnalyseRequestDTO dto = objectMapper.readValue(dtoJson, AnalyseRequestDTO.class);
+        return analyseService.addAnalyse(auth, id, dto, file);
     }
 
     @GetMapping

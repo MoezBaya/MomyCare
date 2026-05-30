@@ -27,10 +27,12 @@ public class RelationService {
     private final RelationMapper         relationMapper;
     private final SecurityContextService security;
 
+
+
     // ─── Gynéco : terminer une relation ──────────────────────────────────────
 
-    public RelationResponseDTO terminerRelation(Authentication auth, Long relationId) {
-        Gynecologue gynecologue = security.getGyneco(auth);
+    public RelationResponseDTO terminerRelation( Long relationId) {
+        Gynecologue gynecologue = security.getGyneco();
 
         Relation relation = relationRepository.findById(relationId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -55,17 +57,16 @@ public class RelationService {
     // ─── Patiente : voir ses relations ───────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<RelationResponseDTO> getMesRelations(Authentication auth) {
-        Patiente patiente = security.getPatiente(auth);
-        return relationMapper.toDtoList(
-                relationRepository.findByPatiente_Id(patiente.getId()));
+    public List<RelationResponseDTO> getMesRelations() {
+        Patiente patiente = security.getPatiente();
+        return relationMapper.toDtoList(relationRepository.findByPatiente_Id(patiente.getId()));
     }
 
     // ─── Gynéco : voir les demandes en attente ────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<RelationResponseDTO> getDemandesEnAttente(Authentication auth) {
-        Gynecologue gynecologue = security.getGyneco(auth);
+    public List<RelationResponseDTO> getDemandesEnAttente() {
+        Gynecologue gynecologue = security.getGyneco();
         return relationMapper.toDtoList(
                 relationRepository.findByGynecologue_IdAndStatus(
                         gynecologue.getId(), StatutRelation.PENDING));

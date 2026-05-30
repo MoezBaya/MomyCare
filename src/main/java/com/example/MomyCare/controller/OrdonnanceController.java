@@ -29,7 +29,7 @@ public class OrdonnanceController {
             @PathVariable Long consultationId,
             @Valid @RequestBody OrdonnanceRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ordonnanceService.createOrdonnance(auth, consultationId, dto));
+                .body(ordonnanceService.createOrdonnance(consultationId, dto));
     }
 
     // GET — une ordonnance par ID
@@ -46,18 +46,17 @@ public class OrdonnanceController {
     @GetMapping
     @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<List<OrdonnanceResponseDTO>> getOrdonnancesByConsultation(
-            Authentication auth, @PathVariable Long consultationId) {
-        return ResponseEntity.ok(ordonnanceService.getOrdonnancesByConsultation(auth , consultationId));
+             @PathVariable Long consultationId) {
+        return ResponseEntity.ok(ordonnanceService.getOrdonnancesByConsultation( consultationId));
     }
 
     // DELETE — supprimer une ordonnance
     @DeleteMapping("/{ordonnanceId}")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<Void> deleteOrdonnance(
-            Authentication auth,
             @PathVariable Long consultationId,
             @PathVariable Long ordonnanceId) {
-        ordonnanceService.deleteOrdonnance(auth, consultationId, ordonnanceId);
+        ordonnanceService.deleteOrdonnance( consultationId, ordonnanceId);
         return ResponseEntity.noContent().build();
     }
 }

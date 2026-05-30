@@ -13,9 +13,9 @@ import java.util.List;
 @Builder
 public class OrdonnanceResponseDTO {
 
-    private Long idOrdonance;
+    private Long idOrdonnance;
 
-    private String numOrdonance;
+    private String numOrdonnance;
 
     private String cachets;
 

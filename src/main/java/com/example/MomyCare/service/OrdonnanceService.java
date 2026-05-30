@@ -6,6 +6,7 @@ import com.example.MomyCare.dto.ordonnance.OrdonnanceResponseDTO;
 import com.example.MomyCare.mapper.OrdonnanceMapper;
 import com.example.MomyCare.model.Consultation;
 import com.example.MomyCare.model.Gynecologue;
+import com.example.MomyCare.model.LigneOrdonnance;
 import com.example.MomyCare.model.Ordonnance;
 import com.example.MomyCare.security.service.SecurityContextService;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +29,8 @@ public class OrdonnanceService {
 
     // ─── Créer ────────────────────────────────────────────────────────────────
 
-    public OrdonnanceResponseDTO createOrdonnance(
-            Authentication auth,
-            Long consultationId,
-            OrdonnanceRequestDTO dto
-    ) {
-        Gynecologue  gyneco       = security.getGyneco(auth);
+    public OrdonnanceResponseDTO createOrdonnance(Long consultationId, OrdonnanceRequestDTO dto) {
+        Gynecologue  gyneco       = security.getGyneco();
         Consultation consultation = security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         if (ordonnanceRepo.existsByNumOrdonnanceAndConsultation_IdConsultation(
@@ -44,6 +41,14 @@ public class OrdonnanceService {
 
         Ordonnance ordonnance = mapper.toEntity(dto);
         ordonnance.setConsultation(consultation);
+
+        List<LigneOrdonnance> lignes = dto.getLignes()
+                .stream()
+                .map(mapper::toLigneEntity)
+                .toList();
+
+        lignes.forEach(l -> l.setOrdonnance(ordonnance));
+        ordonnance.setLigneOrdonnances(lignes);
 
         return mapper.toResponseDTO(ordonnanceRepo.save(ordonnance));
     }
@@ -61,10 +66,9 @@ public class OrdonnanceService {
 
     @Transactional(readOnly = true)
     public List<OrdonnanceResponseDTO> getOrdonnancesByConsultation(
-            Authentication auth,
             Long consultationId
     ) {
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
         security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         return mapper.toResponseDTOList(
@@ -73,8 +77,8 @@ public class OrdonnanceService {
 
     // ─── Supprimer ────────────────────────────────────────────────────────────
 
-    public void deleteOrdonnance(Authentication auth, Long consultationId, Long ordonnanceId) {
-        Gynecologue gyneco = security.getGyneco(auth);
+    public void deleteOrdonnance(Long consultationId, Long ordonnanceId) {
+        Gynecologue gyneco = security.getGyneco();
         security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         Ordonnance ordonnance = findOrThrow(ordonnanceId);

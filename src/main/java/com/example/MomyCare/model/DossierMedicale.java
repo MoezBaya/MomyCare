@@ -7,6 +7,7 @@ import java.util.List;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -19,15 +20,11 @@ public class DossierMedicale {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotBlank(message = "Les antécédents sont obligatoires")
     private String antecedents;
 
     private String traitement;
 
     private String maladieChronique;
-
-    @NotBlank(message = "date de grossese est obligatoire")
     private LocalDate dateDeGrosses;
 
     // Ajouté — requis par DossierMedicalService

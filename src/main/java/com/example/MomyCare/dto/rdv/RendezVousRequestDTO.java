@@ -4,6 +4,7 @@ import com.example.MomyCare.model.MotifRendezVous;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
@@ -19,6 +20,7 @@ public class RendezVousRequestDTO {
 
     @NotNull(message = "La date est obligatoire")
     @Future(message = "La date doit être dans le futur")
+    @DateTimeFormat(pattern = "dd/MM/yyyy HH:mm")
     private LocalDateTime dateRendezVous;
 
     @NotNull(message = "Le motif est obligatoire")

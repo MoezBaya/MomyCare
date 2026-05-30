@@ -36,7 +36,7 @@ public class ConsultationService {
             Authentication auth,
             Long patienteId
     ) {
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
         access.checkRelationActive(patienteId, gyneco.getId());
 
         return consultationRepository
@@ -51,7 +51,7 @@ public class ConsultationService {
             Authentication auth,
             ConsultationRequestDTO dto
     ) {
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
         access.checkRelationActive(dto.getPatienteId(), gyneco.getId());
         DossierMedicale dossier = findDossierOrThrow(dto.getPatienteId());
         Consultation consultation = mapper.toEntity(dto);
@@ -64,7 +64,7 @@ public class ConsultationService {
     @Transactional(readOnly = true)
     public List<ConsultationResponseDTO> getMesConsultations(Authentication auth) {
 
-        Patiente patiente = security.getPatiente(auth);
+        Patiente patiente = security.getPatiente();
         DossierMedicale dossier = patiente.getDossierMedicale();
 
         if (dossier == null) {

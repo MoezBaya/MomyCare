@@ -52,7 +52,7 @@ public class LigneOrdonnanceService {
             LigneOrdonnanceRequestDTO dto,
             Authentication auth
     ) {
-        Gynecologue gyneco     = security.getGyneco(auth);
+        Gynecologue gyneco     = security.getGyneco();
         Ordonnance  ordonnance = ordonnanceService.findOrThrow(ordonnanceId);
         security.getConsultationIfAuthorized(
                 ordonnance.getConsultation().getIdConsultation(), gyneco.getId());
@@ -75,7 +75,7 @@ public class LigneOrdonnanceService {
             LigneOrdonnanceRequestDTO dto,
             Authentication auth
     ) {
-        Gynecologue     gyneco = security.getGyneco(auth);
+        Gynecologue     gyneco = security.getGyneco();
         LigneOrdonnance ligne  = findLigneOrThrow(ordonnanceId, ligneId);
         security.getConsultationIfAuthorized(
                 ligne.getOrdonnance().getConsultation().getIdConsultation(), gyneco.getId());
@@ -92,7 +92,7 @@ public class LigneOrdonnanceService {
     // ─── Suppression ──────────────────────────────────────────────────────────
 
     public void deleteLigne(Long ordonnanceId, Long ligneId, Authentication auth) {
-        Gynecologue     gyneco = security.getGyneco(auth);
+        Gynecologue     gyneco = security.getGyneco();
         LigneOrdonnance ligne  = findLigneOrThrow(ordonnanceId, ligneId);
         security.getConsultationIfAuthorized(
                 ligne.getOrdonnance().getConsultation().getIdConsultation(), gyneco.getId());

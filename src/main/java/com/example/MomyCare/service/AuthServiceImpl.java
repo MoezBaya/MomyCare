@@ -71,12 +71,10 @@ public class AuthServiceImpl implements AuthService {
 
         User user = findUserById(userDetails.getId());
 
-        String token = jwtUtils.generateTokenFromUsername(user.getLogin());
+        String token = jwtUtils.generateToken(user.getLogin());
 
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                 .body(buildUserResponse(user, token));
     }
 
@@ -105,11 +103,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ResponseEntity<MessageResponse> logout() {
 
-        ResponseCookie cleanCookie = jwtUtils.getCleanJwtCookie();
         SecurityContextHolder.clearContext();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cleanCookie.toString())
                 .body(new MessageResponse("Déconnexion réussie"));
     }
 

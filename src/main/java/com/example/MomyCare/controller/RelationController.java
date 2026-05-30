@@ -18,19 +18,18 @@ public class RelationController {
 
     @GetMapping("/mes-relations")
     @PreAuthorize("hasRole('PATIENTE')")
-    public List<RelationResponseDTO> mesRelations(Authentication auth) {
-        return relationService.getMesRelations(auth);
+    public List<RelationResponseDTO> mesRelations() {
+        return relationService.getMesRelations();
     }
 
     @GetMapping("/demandes")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
-    public List<RelationResponseDTO> demandes(Authentication auth) {
-        return relationService.getDemandesEnAttente(auth);
+    public List<RelationResponseDTO> demandes() {
+        return relationService.getDemandesEnAttente();
     }
 
     @PatchMapping("/{relationId}/terminer") @PreAuthorize("hasRole('GYNECOLOGUE')")
-    public RelationResponseDTO terminerRelation( Authentication auth,
-                                                 @PathVariable Long relationId ) {
-        return relationService.terminerRelation( auth, relationId );
+    public RelationResponseDTO terminerRelation(@PathVariable Long relationId ) {
+        return relationService.terminerRelation(  relationId );
     }
 }

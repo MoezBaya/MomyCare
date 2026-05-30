@@ -32,11 +32,6 @@ public class GynecologueController {
                                                   @RequestBody GynecologueSignupRequest updateGynecologueDTO) {
         return gynecologueService.updateGyneco(auth, updateGynecologueDTO );
     }
-    @GetMapping("/patientes")
-    @PreAuthorize("hasRole('GYNECOLOGUE')")
-    public List<PatienteResponseDTO> getMyPatients(Authentication auth) {
-        return gynecologueService.getMyPatients(auth);
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<GynecologueResponseDTO> getGynecologue(@PathVariable Long id) {

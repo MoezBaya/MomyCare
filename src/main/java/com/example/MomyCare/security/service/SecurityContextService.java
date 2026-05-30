@@ -8,7 +8,9 @@ import com.example.MomyCare.model.Gynecologue;
 import com.example.MomyCare.model.Patiente;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -18,24 +20,69 @@ import org.springframework.web.server.ResponseStatusException;
 public class SecurityContextService {
 
     private final GynecologueRepository gynecoRepo;
-    private final PatienteRepository    patienteRepo;
+    private final PatienteRepository patienteRepo;
     private final ConsultationRepository consultationRepo;
 
-    // ─── Résolution de l'identité ────────────────────────────────────────────
 
-    public Gynecologue getGyneco(Authentication auth) {
+
+    // ==================== MÉTHODES PUBLIQUES ====================
+
+    /**
+     * Récupère le Gynecologue connecté - SEULE méthode autorisée
+     */
+    public Gynecologue getGyneco() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+
+        boolean isGyneco = user.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_GYNECOLOGUE"));
+        if (!isGyneco) {
+            throw new AccessDeniedException("Not a gynecologist");
+        }
         return gynecoRepo.findByUser_Id(user.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
+                .orElseThrow(() -> new AccessDeniedException("Gynecologue non trouvé"));
     }
 
-    public Patiente getPatiente(Authentication auth) {
+    /**
+     * Récupère la Patiente connectée - SEULE méthode autorisée
+     */
+    public Patiente getPatiente() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+
+        boolean isPatient = user.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_PATIENTE"));
+
+        if (!isPatient) {
+            throw new AccessDeniedException("Not a patient");
+        }
+
         return patienteRepo.findByUser_Id(user.getId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patiente non trouvée"));
+                .orElseThrow(() -> new AccessDeniedException("Patiente non trouvée"));
     }
+
+    /**
+     * Vérifie si l'utilisateur connecté EST ce gynécologue
+     */
+    public boolean isCurrentGynecologue(Long gynecoId) {
+        return getGyneco().getId().equals(gynecoId);
+    }
+
+    /**
+     * Vérifie si l'utilisateur connecté EST cette patiente
+     */
+    public boolean isCurrentPatiente(Long patienteId) {
+        return getPatiente().getId().equals(patienteId);
+    }
+
+    // ==================== MÉTHODE PRIVÉE ====================
+
+    private Long getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
+        return user.getId();  // Toujours le User.id !
+    }
+
 
     // ─── Accès consultation ───────────────────────────────────────────────────
 
@@ -49,5 +96,6 @@ public class SecurityContextService {
                     HttpStatus.FORBIDDEN, "Accès refusé à cette consultation");
         }
         return consultation;
+
     }
 }

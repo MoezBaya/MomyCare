@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -44,6 +45,12 @@ public class ConsultationController {
     @PreAuthorize("hasRole('PATIENTE')")
     public ResponseEntity<List<ConsultationResponseDTO>> getMesConsultations(
             Authentication auth) {
+        System.out.println("CONTROLLER REACHED");
+
+
+                SecurityContextHolder.getContext().getAuthentication();
+
+        System.out.println("AUTH = " + SecurityContextHolder.getContext().getAuthentication());
         return ResponseEntity.ok(
                 consultationService.getMesConsultations(auth));
     }

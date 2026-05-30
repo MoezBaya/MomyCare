@@ -1,6 +1,5 @@
 package com.example.MomyCare.dto.ligneOrdonnance;
 
-import com.example.MomyCare.model.Medicament;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

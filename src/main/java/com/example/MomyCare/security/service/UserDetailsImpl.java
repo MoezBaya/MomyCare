@@ -36,7 +36,7 @@ public class UserDetailsImpl implements UserDetails {
         this.authorities = authorities;
     }
 
-    // 🔥 Build propre depuis User
+    //  Build propre depuis User
     public static UserDetailsImpl build(User user) {
         List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority(role.getRoleName().name()))
@@ -46,7 +46,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getId(),
                 user.getLogin(),
                 user.getEmail(),
-                user.getNumeroTelephone(), // ✅ FIX هنا
+                user.getNumeroTelephone(),
                 user.getPassword(),
                 authorities
         );
@@ -63,13 +63,17 @@ public class UserDetailsImpl implements UserDetails {
         return authorities;
     }
 
-    @Override public boolean isAccountNonExpired() { return true; }
+    @Override
+    public boolean isAccountNonExpired() { return true; }
 
-    @Override public boolean isAccountNonLocked() { return true; }
+    @Override
+    public boolean isAccountNonLocked() { return true; }
 
-    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
 
-    @Override public boolean isEnabled() { return true; }
+    @Override
+    public boolean isEnabled() { return true; }
 
     public Long getId() { return id; }
 

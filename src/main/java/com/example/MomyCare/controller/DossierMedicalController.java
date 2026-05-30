@@ -22,11 +22,10 @@ public class DossierMedicalController {
     @PostMapping("/patiente/{patienteId}")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<DossierMedicaleResponseDTO> create(
-            Authentication auth,
             @PathVariable Long patienteId,
             @RequestBody CreateDossierMedicaleDTO dto) {
 
-        DossierMedicaleResponseDTO response = dossierService.createForPatiente(auth, patienteId, dto);
+        DossierMedicaleResponseDTO response = dossierService.createForPatiente( patienteId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -42,16 +41,17 @@ public class DossierMedicalController {
     @PutMapping("/patiente/{patienteId}")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<DossierMedicaleResponseDTO> update(
-            Authentication auth,
+
             @PathVariable Long patienteId,
             @RequestBody CreateDossierMedicaleDTO dto) {
 
-        return ResponseEntity.ok(dossierService.update(auth, patienteId, dto));
+        return ResponseEntity.ok(dossierService.update(patienteId, dto));
     }
 
     @GetMapping("/mon-dossier")
     @PreAuthorize("hasRole('PATIENTE')")
     public ResponseEntity<DossierMedicaleResponseDTO> getMyDossier(Authentication auth) {
+
         return ResponseEntity.ok(dossierService.getMyDossier(auth));
     }
 

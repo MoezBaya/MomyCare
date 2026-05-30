@@ -37,7 +37,7 @@ public class GynecologueService {
     @Transactional(readOnly = true)
     public GynecologueResponseDTO getMyProfile(Authentication auth) {
 
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
 
         return gynecologueMapper.toDto(gyneco);
     }
@@ -48,7 +48,7 @@ public class GynecologueService {
             GynecologueSignupRequest dto
     ) {
 
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
 
         gynecologueMapper.updateFromDto(dto, gyneco);
 
@@ -59,15 +59,7 @@ public class GynecologueService {
         return gynecologueMapper.toDto(gyneco);
     }
 
-    @Transactional(readOnly = true)
-    public List<PatienteResponseDTO> getMyPatients(Authentication auth) {
 
-        Gynecologue gyneco = security.getGyneco(auth);
-
-        return patienteMapper.toDTOList(
-                patienteRepository.findByGynecologue_Id(gyneco.getId())
-        );
-    }
 
     @Transactional(readOnly = true)
     public GynecologueResponseDTO getGynecologue(Long id) {

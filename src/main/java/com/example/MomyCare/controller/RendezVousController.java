@@ -27,7 +27,7 @@ public class RendezVousController {
             Authentication auth,
             @Valid @RequestBody RendezVousRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(rdvService.demanderRdv(auth, dto));
+                .body(rdvService.demanderRdv( dto));
     }
 
     @PatchMapping("/{rdvId}/repondre")
@@ -36,20 +36,20 @@ public class RendezVousController {
             Authentication auth,
             @PathVariable Long rdvId,
             @RequestParam boolean accepter) {
-        return ResponseEntity.ok(rdvService.repondreRdv(auth, rdvId, accepter));
+        return ResponseEntity.ok(rdvService.repondreRdv( rdvId, accepter));
     }
 
     @GetMapping("/en-attente")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<List<RendezVousResponseDTO>> getRdvEnAttente(
             Authentication auth) {
-        return ResponseEntity.ok(rdvService.getMesRdvEnAttente(auth));
+        return ResponseEntity.ok(rdvService.getMesRdvEnAttente());
     }
 
     @GetMapping("/mes-rdv")
     @PreAuthorize("hasRole('PATIENTE')")
     public ResponseEntity<List<RendezVousResponseDTO>> getMesRdv(
             Authentication auth) {
-        return ResponseEntity.ok(rdvService.getMesRdv(auth));
+        return ResponseEntity.ok(rdvService.getMesRdv());
     }
 }

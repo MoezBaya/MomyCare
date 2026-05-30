@@ -9,7 +9,6 @@ import com.example.MomyCare.model.Gynecologue;
 import com.example.MomyCare.model.Imagerie;
 import com.example.MomyCare.security.service.SecurityContextService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,12 +27,11 @@ public class ImagerieService {
     private final SecurityContextService security;
 
     public ImagerieResponseDTO addImagerie(
-            Authentication auth,
             Long consultationId,
             ImagerieRequestDTO dto,
             MultipartFile file
     ) {
-        Gynecologue  gyneco       = security.getGyneco(auth);
+        Gynecologue  gyneco       = security.getGyneco();
         Consultation consultation = security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         String path = fileStorageService.saveFile(file);
@@ -49,10 +47,9 @@ public class ImagerieService {
 
     @Transactional(readOnly = true)
     public List<ImagerieResponseDTO> getByConsultation(
-            Authentication auth,
             Long consultationId
     ) {
-        Gynecologue gyneco = security.getGyneco(auth);
+        Gynecologue gyneco = security.getGyneco();
         security.getConsultationIfAuthorized(consultationId, gyneco.getId());
 
         return mapper.toDtoList(imagerieRepo.findByConsultation_IdConsultation(consultationId));

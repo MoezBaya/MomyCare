@@ -38,8 +38,4 @@ public class Patiente{
     @OneToMany(mappedBy = "patiente", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Relation> relations = new ArrayList<>();
 
-    @ManyToOne
-    @JoinColumn(name="gynecologue_id")
-    private Gynecologue gynecologue;
-
 }

@@ -5,29 +5,43 @@ import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
 import com.example.MomyCare.service.PatienteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/patients")
+@RequestMapping("/api/patientes")
 @RequiredArgsConstructor
 public class PatienteController {
 
     private final PatienteService patienteService;
 
-    @GetMapping("/me")
-    @PreAuthorize("hasRole('PATIENTE')")
-    public PatienteResponseDTO getMyProfile(Authentication authentication) {
-        return patienteService.getMyProfile(authentication);
+    //  Gynécologue - Voir toutes ses patientes
+    @GetMapping("/mes-patientes")
+    @PreAuthorize("hasRole('GYNECOLOGUE')")
+    public ResponseEntity<List<PatienteResponseDTO>> getMesPatientes() {
+        return ResponseEntity.ok(patienteService.getMesPatientes());
     }
 
+
+
+    //  Patiente - Voir son propre profil
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('PATIENTE')")
+    public ResponseEntity<PatienteResponseDTO> getMyProfile(Authentication authentication) {
+        return ResponseEntity.ok(patienteService.getMyProfile(authentication));
+    }
+
+    // ✅ Patiente - Modifier son profil
     @PutMapping("/me")
     @PreAuthorize("hasRole('PATIENTE')")
-    public PatienteResponseDTO updateMyProfile(
+    public ResponseEntity<PatienteResponseDTO> updateMyProfile(
             Authentication authentication,
             @Valid @RequestBody PatienteSignupRequest request
     ) {
-        return patienteService.updateMyProfile(authentication, request);
+        return ResponseEntity.ok(patienteService.updateMyProfile(authentication, request));
     }
 }
