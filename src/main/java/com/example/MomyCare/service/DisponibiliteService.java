@@ -5,13 +5,16 @@ import com.example.MomyCare.dao.DisponibiliteRepository;
 import com.example.MomyCare.dao.GynecologueRepository;
 import com.example.MomyCare.dto.Disponibilite.DisponibiliteDTO;
 import com.example.MomyCare.dto.Disponibilite.DisponibiliteRequestDTO;
+import com.example.MomyCare.exception.DisponibiliteNotFoundException;
 import com.example.MomyCare.mapper.DisponibiliteMapper;
 import com.example.MomyCare.model.Disponibilite;
 import com.example.MomyCare.model.Gynecologue;
 import com.example.MomyCare.security.service.SecurityContextService;
+import com.example.MomyCare.validation.DisponibiliteValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,64 +24,111 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class DisponibiliteService {
 
-    private final DisponibiliteRepository disponibiliteRepo;
-    private final GynecologueRepository gynecologueRepo;
-    private final DisponibiliteMapper mapper;
-    private final SecurityContextService securityContext;
+    private final DisponibiliteRepository  disponibiliteRepository;
+    private final GynecologueRepository    gynecologueRepository;
+    private final DisponibiliteMapper      disponibiliteMapper;
+    private final DisponibiliteValidator disponibiliteValidator;
 
-    @Transactional(readOnly = true)
-    public List<DisponibiliteDTO> getDisponibilitesGyneco(Long gynecologueId) {
-        Gynecologue gyneco = gynecologueRepo.findById(gynecologueId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gynécologue non trouvé"));
+    // ── Lecture ──────────────────────────────────────────────────────────────
 
-        return mapper.toDtoList(disponibiliteRepo.findByGynecologueAndDisponibleTrueAndDateTimeAfterOrderByDateTimeAsc(gyneco, LocalDateTime.now()));
+    /**
+     * Toutes les disponibilités d'un gynécologue.
+     * Endpoint : GET /api/disponibilites/gyneco/{gynecologueId}
+     * NOM INCHANGÉ.
+     */
+    public List<DisponibiliteDTO> getDisponibilitesParGyneco(Long gynecologueId) {
+        return disponibiliteMapper.toDtoList(
+                disponibiliteRepository.findByGynecologueId(gynecologueId)
+        );
     }
 
-    @Transactional(readOnly = true)
-    public List<DisponibiliteDTO> getMesDisponibilites(Authentication auth) {
-        Gynecologue gyneco = securityContext.getGyneco();
-        return mapper.toDtoList(disponibiliteRepo.findByGynecologueOrderByDateTimeAsc(gyneco));
+    /**
+     * Disponibilités du gynécologue connecté.
+     * Endpoint : GET /api/disponibilites/mes-disponibilites
+     * NOM INCHANGÉ.
+     */
+    public List<DisponibiliteDTO> getMesDisponibilites(Long gynecologueId) {
+        return getDisponibilitesParGyneco(gynecologueId);
     }
 
-    public List<DisponibiliteDTO> ajouterDisponibilites(Authentication auth, List<DisponibiliteRequestDTO> dtos) {
-        Gynecologue gyneco = securityContext.getGyneco();
-        List<Disponibilite> nouvellesDispos = new ArrayList<>();
-
-        for (DisponibiliteRequestDTO dto : dtos) {
-            // Check if slot already exists for this doctor
-            if (!disponibiliteRepo.existsByGynecologueAndDateTime(gyneco, dto.getDateTime())) {
-                Disponibilite dispo = Disponibilite.builder()
-                        .gynecologue(gyneco)
-                        .dateTime(dto.getDateTime())
-                        .disponible(true)
-                        .build();
-                nouvellesDispos.add(dispo);
-            }
-        }
-
-        return mapper.toDtoList(disponibiliteRepo.saveAll(nouvellesDispos));
+    /**
+     * Récupère une disponibilité par son ID.
+     */
+    public DisponibiliteDTO getDisponibiliteById(Long id) {
+        return disponibiliteMapper.toDto(findOrThrow(id));
     }
 
-    public void supprimerDisponibilite(Authentication auth, Long id) {
-        Gynecologue gyneco = securityContext.getGyneco();
-        Disponibilite dispo = disponibiliteRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Disponibilité non trouvée"));
+    // ── Écriture ─────────────────────────────────────────────────────────────
 
-        if (!dispo.getGynecologue().getId().equals(gyneco.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cette disponibilité ne vous appartient pas");
+    @Transactional
+    public DisponibiliteDTO creerDisponibilite(Long gynecologueId,
+                                                       DisponibiliteRequestDTO dto) {
+        // 1. Validations métier
+        disponibiliteValidator.validerCoherenceHeures(dto);
+        disponibiliteValidator.validerUnicite(gynecologueId, dto);
+        disponibiliteValidator.validerAbsenceChevauchement(gynecologueId, dto);
+
+        // 2. Construction de l'entité
+        Gynecologue gynecologue = gynecologueRepository.findById(gynecologueId)
+                .orElseThrow(() -> new DisponibiliteNotFoundException(
+                        "Gynécologue introuvable : " + gynecologueId));
+
+        Disponibilite entity = disponibiliteMapper.toEntity(dto);
+        entity.setGynecologue(gynecologue);
+
+        // 3. Persistance
+        return disponibiliteMapper.toDto(disponibiliteRepository.save(entity));
+    }
+
+    /**
+     * Met à jour une disponibilité existante.
+     * Vérifie que le gynécologue connecté en est le propriétaire.
+     */
+    @Transactional
+    public DisponibiliteDTO mettreAJourDisponibilite(Long id,
+                                                             Long gynecologueId,
+                                                             DisponibiliteRequestDTO dto) {
+        Disponibilite existante = findOrThrow(id);
+
+        // Contrôle de propriété
+        if (!existante.getGynecologue().getId().equals(gynecologueId)) {
+            throw new AccessDeniedException("Cette disponibilité ne vous appartient pas.");
         }
 
-        if (!dispo.isDisponible()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Impossible de supprimer un créneau déjà réservé");
+        // Validations métier (on exclut l'entité en cours de modification du check de doublon)
+        disponibiliteValidator.validerCoherenceHeures(dto);
+
+        // Mise à jour via MapStruct (updateEntityFromDto)
+        disponibiliteMapper.updateEntityFromDto(dto, existante);
+
+        return disponibiliteMapper.toDto(disponibiliteRepository.save(existante));
+    }
+
+    /**
+     * Supprime une disponibilité.
+     * Endpoint : DELETE /api/disponibilites/{id}
+     * NOM INCHANGÉ (deleteDisponibilite).
+     */
+    @Transactional
+    public void deleteDisponibilite(Long id, Long gynecologueId) {
+        Disponibilite existante = findOrThrow(id);
+
+        if (!existante.getGynecologue().getId().equals(gynecologueId)) {
+            throw new AccessDeniedException("Cette disponibilité ne vous appartient pas.");
         }
 
-        disponibiliteRepo.delete(dispo);
+        disponibiliteRepository.deleteById(id);
+    }
+
+    // ── Helpers privés ───────────────────────────────────────────────────────
+
+    private Disponibilite findOrThrow(Long id) {
+        return disponibiliteRepository.findById(id)
+                .orElseThrow(() -> new DisponibiliteNotFoundException(id));
     }
 }
-

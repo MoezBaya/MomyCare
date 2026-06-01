@@ -25,6 +25,9 @@ public class AnalyseController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("dto") String dtoJson
     ) throws com.fasterxml.jackson.core.JsonProcessingException {
+        System.out.println("Consultation ID: " + id);
+        System.out.println("File name: " + file.getOriginalFilename());
+        System.out.println("DTO JSON: " + dtoJson);
         com.fasterxml.jackson.databind.ObjectMapper objectMapper =
                 new com.fasterxml.jackson.databind.ObjectMapper();
         AnalyseRequestDTO dto = objectMapper.readValue(dtoJson, AnalyseRequestDTO.class);

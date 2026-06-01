@@ -1,12 +1,10 @@
 package com.example.MomyCare.dto.Disponibilite;
 
-
-import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -15,27 +13,13 @@ import java.time.LocalDateTime;
 @Builder
 public class DisponibiliteRequestDTO {
 
-    @NotNull(message = "La date et l'heure sont obligatoires")
-    @Future(message = "La disponibilité doit être dans le futur")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime dateTime;
+    @NotNull(message = "Le jour de la semaine est obligatoire")
+    private DayOfWeek jourSemaine;
+
+    @NotNull(message = "L'heure de début est obligatoire")
+    private LocalTime heureDebut;
+
+    @NotNull(message = "L'heure de fin est obligatoire")
+    private LocalTime heureFin;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

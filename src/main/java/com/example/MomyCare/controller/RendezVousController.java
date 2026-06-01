@@ -24,10 +24,9 @@ public class RendezVousController {
     @PostMapping
     @PreAuthorize("hasRole('PATIENTE')")
     public ResponseEntity<RendezVousResponseDTO> demanderRdv(
-            Authentication auth,
             @Valid @RequestBody RendezVousRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(rdvService.demanderRdv( dto));
+        RendezVousResponseDTO response = rdvService.demanderRdv(dto);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{rdvId}/repondre")
@@ -48,8 +47,13 @@ public class RendezVousController {
 
     @GetMapping("/mes-rdv")
     @PreAuthorize("hasRole('PATIENTE')")
-    public ResponseEntity<List<RendezVousResponseDTO>> getMesRdv(
-            Authentication auth) {
+    public ResponseEntity<List<RendezVousResponseDTO>> getMesRdv() {
         return ResponseEntity.ok(rdvService.getMesRdv());
+    }
+
+    @GetMapping("/gyneco/mes-rdv")
+    @PreAuthorize("hasRole('GYNECOLOGUE')")
+    public ResponseEntity<List<RendezVousResponseDTO>> getGynecoRdv() {
+        return ResponseEntity.ok(rdvService.getGynecoRdv());
     }
 }
