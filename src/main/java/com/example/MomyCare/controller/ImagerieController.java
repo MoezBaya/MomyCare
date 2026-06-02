@@ -6,6 +6,7 @@ import com.example.MomyCare.service.ImagerieService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,6 +21,7 @@ public class ImagerieController {
     private final ImagerieService imagerieService;
     private final ObjectMapper objectMapper;  // Inject ObjectMapper
 
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ImagerieResponseDTO add(
             @PathVariable Long id,
@@ -30,7 +32,10 @@ public class ImagerieController {
         return imagerieService.addImagerie(id, dto, file);
     }
 
+
+
     @GetMapping
+    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public List<ImagerieResponseDTO> get(@PathVariable Long id) {
         return imagerieService.getByConsultation(id);
     }

@@ -19,4 +19,5 @@ public class DisponibiliteDTO {
     private LocalTime heureDebut;
     private LocalTime heureFin;
     private Long gynecologueId ;
+
 }

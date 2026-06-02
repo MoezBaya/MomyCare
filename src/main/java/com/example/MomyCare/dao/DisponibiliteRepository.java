@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,6 +57,21 @@ public interface DisponibiliteRepository extends JpaRepository<Disponibilite, Lo
             @Param("jourSemaine") DayOfWeek jourSemaine,
             @Param("heure")         java.time.LocalTime heure
     );
+
+    @Query("""
+    SELECT COUNT(d) > 0 FROM Disponibilite d
+    WHERE d.gynecologue.id = :gynecologueId
+      AND d.jourSemaine    = :jourSemaine
+      AND d.heureDebut     = :heureDebut
+      AND d.id             != :idExclu
+""")
+    boolean existsByGynecologueIdAndJourSemaineAndHeureDebutAndIdNot(
+            @Param("gynecologueId") Long gynecologueId,
+            @Param("jourSemaine")   DayOfWeek jourSemaine,
+            @Param("heureDebut") LocalTime heureDebut,
+            @Param("idExclu")       Long idExclu
+    );
+
 }
 
 

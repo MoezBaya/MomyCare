@@ -15,4 +15,5 @@ public class CreateDossierMedicaleDTO {
     private String traitement;
     private String maladieChronique;
     private LocalDate dateDeGrosses;
+    private String groupeSangin ;
 }

@@ -2,6 +2,7 @@ package com.example.MomyCare.service;
 
 import com.example.MomyCare.dto.gynecologue.GynecologueSignupRequest;
 import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
+import com.example.MomyCare.model.Patiente;
 import com.example.MomyCare.security.request.LoginRequest;
 import com.example.MomyCare.security.request.SignupRequest;
 import com.example.MomyCare.security.response.MessageResponse;
@@ -21,4 +22,6 @@ public interface AuthService {
     ResponseEntity<?> registerGynecologue(@Valid GynecologueSignupRequest req);
 
     ResponseEntity<?> registerPatiente(@Valid PatienteSignupRequest req);
+
+    Patiente registerPatienteAndReturnEntity(PatienteSignupRequest patienteDto);
 }

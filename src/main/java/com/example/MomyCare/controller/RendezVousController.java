@@ -1,5 +1,8 @@
 package com.example.MomyCare.controller;
 
+import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
+import com.example.MomyCare.dto.rdv.AjoutRdvGynecoRequest;
+import com.example.MomyCare.dto.rdv.RdvExistanteRequestDTO;
 import com.example.MomyCare.dto.rdv.RendezVousRequestDTO;
 import com.example.MomyCare.dto.rdv.RendezVousResponseDTO;
 import com.example.MomyCare.service.RendezVousService;
@@ -32,7 +35,6 @@ public class RendezVousController {
     @PatchMapping("/{rdvId}/repondre")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<RendezVousResponseDTO> repondreRdv(
-            Authentication auth,
             @PathVariable Long rdvId,
             @RequestParam boolean accepter) {
         return ResponseEntity.ok(rdvService.repondreRdv( rdvId, accepter));
@@ -40,8 +42,7 @@ public class RendezVousController {
 
     @GetMapping("/en-attente")
     @PreAuthorize("hasRole('GYNECOLOGUE')")
-    public ResponseEntity<List<RendezVousResponseDTO>> getRdvEnAttente(
-            Authentication auth) {
+    public ResponseEntity<List<RendezVousResponseDTO>> getRdvEnAttente() {
         return ResponseEntity.ok(rdvService.getMesRdvEnAttente());
     }
 
@@ -55,5 +56,27 @@ public class RendezVousController {
     @PreAuthorize("hasRole('GYNECOLOGUE')")
     public ResponseEntity<List<RendezVousResponseDTO>> getGynecoRdv() {
         return ResponseEntity.ok(rdvService.getGynecoRdv());
+    }
+
+    @PostMapping("/gyneco")
+    @PreAuthorize("hasRole('GYNECOLOGUE')")
+    public ResponseEntity<RendezVousResponseDTO> creerRdvParGyneco(
+            @RequestBody AjoutRdvGynecoRequest request) {
+        return ResponseEntity.ok(rdvService.creerRdvParGyneco(
+                request.getPatiente(),
+                request.getRendezVous()
+        ));
+    }
+
+    @PostMapping("/gyneco/existante")
+    public ResponseEntity<RendezVousResponseDTO> creerRdvPatienteExistante(
+            @RequestBody @Valid RdvExistanteRequestDTO request) {
+
+        RendezVousResponseDTO rdv = rdvService.creerRdvParGynecoExistante(
+                request.getPatienteId(),
+                request.getRendezVous()
+        );
+
+        return ResponseEntity.ok(rdv);
     }
 }

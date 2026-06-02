@@ -1,65 +1,19 @@
 package com.example.MomyCare.service;
 
-import com.example.MomyCare.dao.MedicamentRepository;
 import com.example.MomyCare.dto.medicament.MedicamentRequestDTO;
 import com.example.MomyCare.dto.medicament.MedicamentResponseDTO;
-import com.example.MomyCare.exception.ResourceNotFoundException;
-import com.example.MomyCare.mapper.MedicamentMapper;
-import com.example.MomyCare.model.Medicament;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional
-public class MedicamentService {
+public interface MedicamentService {
+    List<MedicamentResponseDTO> getAllMedicaments();
 
-    private final MedicamentRepository medicamentRepository;
-    private final MedicamentMapper medicamentMapper;
+    MedicamentResponseDTO getMedicamentById(Long id);
 
-    @Transactional(readOnly = true)
-    public List<MedicamentResponseDTO> getAllMedicaments() {
-        return medicamentMapper.toResponseDTOList(medicamentRepository.findAll());
-    }
+    MedicamentResponseDTO createMedicament(@Valid MedicamentRequestDTO dto);
 
-    @Transactional(readOnly = true)
-    public MedicamentResponseDTO getMedicamentById(Long id) {
-        return medicamentMapper.toResponseDTO(findOrThrow(id));
-    }
+    MedicamentResponseDTO updateMedicament(Long id, @Valid MedicamentRequestDTO dto);
 
-    @Transactional
-    public MedicamentResponseDTO createMedicament(MedicamentRequestDTO dto) {
-        Medicament saved = medicamentRepository.save(medicamentMapper.toEntity(dto));
-        log.info("Médicament créé : {}", saved.getCodeMedicament());
-        return medicamentMapper.toResponseDTO(saved);
-    }
-
-    @Transactional
-    public MedicamentResponseDTO updateMedicament(Long id, MedicamentRequestDTO dto) {
-        Medicament medicament = findOrThrow(id);
-        medicamentMapper.updateEntityFromDto(dto, medicament);
-        Medicament updated = medicamentRepository.save(medicament);
-        log.info("Médicament {} mis à jour", id);
-        return medicamentMapper.toResponseDTO(updated);
-    }
-
-    @Transactional
-    public void deleteMedicament(Long id) {
-        Medicament medicament = findOrThrow(id);
-        medicamentRepository.delete(medicament);
-        log.info("Médicament {} supprimé", id);
-    }
-
-    // ── helper ───────────────────────────────────────────────────────
-
-    public Medicament findOrThrow(Long id) {
-        return medicamentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Médicament introuvable avec l'id : " + id));
-    }
+    void deleteMedicament(Long id);
 }

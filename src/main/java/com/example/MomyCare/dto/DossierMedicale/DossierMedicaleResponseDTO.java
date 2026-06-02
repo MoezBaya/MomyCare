@@ -18,6 +18,7 @@ public class DossierMedicaleResponseDTO {
     private String maladieChronique;
     private LocalDate dateDeGrosses;
     private String modifiePar;
+    private String groupeSanguin ;
 
     private Long patienteId;
 }

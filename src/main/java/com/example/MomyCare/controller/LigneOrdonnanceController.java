@@ -39,7 +39,7 @@ public class LigneOrdonnanceController {
     }
 
     @GetMapping("/{ligneOrdonnanceId}")
-    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENT')")
+    @PreAuthorize("hasAnyRole('GYNECOLOGUE', 'PATIENTE')")
     public ResponseEntity<LigneOrdonnanceResponseDTO> getOrdonnance(
             @PathVariable Long ordonnanceId,
             @PathVariable Long ligneOrdonnanceId) {

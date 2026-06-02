@@ -33,12 +33,20 @@ public class WebSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         return http
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
+
                         // AUTH
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // Documentatio SWAGGER
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml"
+                        ).permitAll()
 
                         // DISPONIBILITES (IMPORTANT FIX)
                         .requestMatchers("/api/disponibilites/gyneco/**")
@@ -101,6 +109,10 @@ public class WebSecurityConfig {
                         // ===================== PAtiente =================
                         .requestMatchers("/api/patientes/mes-patientes")
                         .hasRole("GYNECOLOGUE")
+
+                        // ====================== Imagerie ======================/
+                        .requestMatchers("/api/consultations/*/imageries")
+                        .hasAnyRole("GYNECOLOGUE , PATIENTE")
 
                         // ================= DEFAULT =================
                         .anyRequest().authenticated()

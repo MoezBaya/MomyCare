@@ -26,6 +26,7 @@ public class DossierMedicale {
 
     private String maladieChronique;
     private LocalDate dateDeGrosses;
+    private String groupeSangin ;
 
     // Ajouté — requis par DossierMedicalService
     @ManyToOne(fetch = FetchType.LAZY)

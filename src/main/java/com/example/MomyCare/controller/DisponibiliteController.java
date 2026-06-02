@@ -7,6 +7,9 @@ import com.example.MomyCare.dto.agenda.AgendaJournalierDTO;
 import com.example.MomyCare.security.service.SecurityContextService;
 import com.example.MomyCare.service.CreneauService;
 import com.example.MomyCare.service.DisponibiliteService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,6 +24,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/disponibilites")
 @RequiredArgsConstructor
+@Tag(name = "disponibilité" , description = "Gestion des disponibiltés de Gynecologue")
+@SecurityRequirement(name = "bearerAuth")
 public class DisponibiliteController {
 
     private final DisponibiliteService disponibiliteService;
@@ -29,6 +34,8 @@ public class DisponibiliteController {
 
     // ================== GET disponibilités d’un gynéco ==================
 
+    @Operation(summary = "Récuperer les disponibilités de Gynecologue ",
+            description = "Permet d'une patiente de consulter la disponibilité de Gynecologue")
     @GetMapping("/gyneco/{gynecologueId}")
     public ResponseEntity<List<DisponibiliteDTO>> getDisponibilitesGyneco(
             @PathVariable Long gynecologueId) {

@@ -15,4 +15,6 @@ public interface RelationRepository extends JpaRepository<Relation, Long> {
     List<Relation> findByPatiente_Id(Long patienteId);
     List<Relation> findByGynecologue_IdAndStatus(Long gynecologueId, StatutRelation statut);
     boolean existsByPatiente_IdAndGynecologue_IdAndStatus(Long id, Long id1, StatutRelation statutRelation);
+
+    Optional<Relation> findByPatiente_IdAndStatus(Long patienteId, StatutRelation statutRelation);
 }
