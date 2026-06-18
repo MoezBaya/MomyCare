@@ -2,6 +2,7 @@ package com.example.MomyCare.mapper;
 
 import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
 import com.example.MomyCare.dto.patiente.PatienteResponseDTO;
+import com.example.MomyCare.dto.patiente.PatienteUpdateRequest;
 import com.example.MomyCare.model.Patiente;
 import com.example.MomyCare.model.RendezVous;
 import org.mapstruct.*;
@@ -32,7 +33,7 @@ public interface PatienteMapper {
 
     // ===== UPDATE =====
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateFromDto(PatienteSignupRequest dto, @MappingTarget Patiente entity);
+    void updateFromDto(PatienteUpdateRequest dto, @MappingTarget Patiente entity);
 
     // ===== HELPERS =====
     default List<Long> mapRendezVousIds(Patiente patiente) {

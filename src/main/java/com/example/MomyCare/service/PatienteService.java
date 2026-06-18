@@ -2,6 +2,7 @@ package com.example.MomyCare.service;
 
 import com.example.MomyCare.dto.patiente.PatienteResponseDTO;
 import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
+import com.example.MomyCare.dto.patiente.PatienteUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 
@@ -12,5 +13,5 @@ public interface PatienteService {
 
     PatienteResponseDTO getMyProfile(Authentication authentication);
 
-    PatienteResponseDTO updateMyProfile(Authentication authentication, @Valid PatienteSignupRequest request);
+    PatienteResponseDTO updateMyProfile(Authentication authentication, @Valid PatienteUpdateRequest request);
 }

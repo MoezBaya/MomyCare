@@ -36,7 +36,7 @@ public class AuthController {
     public ResponseEntity<?> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        return ResponseEntity.ok(authService.login(request));
+        return authService.login(request);
     }
 
     @Operation(

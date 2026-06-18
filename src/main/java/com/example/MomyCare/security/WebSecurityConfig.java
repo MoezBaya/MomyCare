@@ -5,8 +5,8 @@ import com.example.MomyCare.security.jwt.AuthTokenFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -30,7 +30,10 @@ public class WebSecurityConfig {
     private final AuthTokenFilter authTokenFilter;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            DaoAuthenticationProvider authenticationProvider
+    ) throws Exception {
 
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -112,15 +115,29 @@ public class WebSecurityConfig {
 
                         // ====================== Imagerie ======================/
                         .requestMatchers("/api/consultations/*/imageries")
-                        .hasAnyRole("GYNECOLOGUE , PATIENTE")
+                        .hasAnyRole("GYNECOLOGUE" , "PATIENTE")
 
+                        // ====================   Test        ================ ///
+                        .requestMatchers("/test/**").permitAll()
                         // ================= DEFAULT =================
                         .anyRequest().authenticated()
                 )
+                .authenticationProvider(authenticationProvider)
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder
+    ) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
+    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

@@ -5,6 +5,7 @@ import com.example.MomyCare.dao.RelationRepository;
 import com.example.MomyCare.dao.UserRepository;
 import com.example.MomyCare.dto.patiente.PatienteResponseDTO;
 import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
+import com.example.MomyCare.dto.patiente.PatienteUpdateRequest;
 import com.example.MomyCare.exception.ResourceNotFoundException;
 import com.example.MomyCare.mapper.PatienteMapper;
 import com.example.MomyCare.mapper.UserMapper;
@@ -52,7 +53,7 @@ public class PatienteServiceImpl implements PatienteService {
     }
 
     @Transactional
-    public PatienteResponseDTO updateMyProfile(Authentication auth, PatienteSignupRequest dto) {
+    public PatienteResponseDTO updateMyProfile(Authentication auth, PatienteUpdateRequest dto) {
         Patiente patiente = security.getPatiente();
         patienteMapper.updateFromDto(dto, patiente);
         userMapper.updateUserFromPatienteDto(dto, patiente.getUser());

@@ -1,5 +1,7 @@
 package com.example.MomyCare.exception;
 
+import com.example.MomyCare.exception.BadRequestException;
+import com.example.MomyCare.exception.ConflictException;
 import com.example.MomyCare.dto.error.ErrorResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -55,6 +57,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         return buildError(HttpStatus.BAD_REQUEST, "INVALID_STATE", ex.getMessage());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
+        return buildError(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+        return buildError(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage());
     }
 
     // ---------- Exceptions générales ----------
