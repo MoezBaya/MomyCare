@@ -3,6 +3,7 @@ package com.example.MomyCare.mapper;
 import com.example.MomyCare.dto.gynecologue.GynecologueSignupRequest;
 
 import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
+import com.example.MomyCare.dto.patiente.PatienteUpdateRequest;
 import com.example.MomyCare.model.User;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
@@ -16,5 +17,5 @@ public interface UserMapper {
     void updateUserFromGynecoDto(GynecologueSignupRequest dto, @MappingTarget User user);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateUserFromPatienteDto(PatienteSignupRequest dto , @MappingTarget User user);
+    void updateUserFromPatienteDto(PatienteUpdateRequest dto , @MappingTarget User user);
 }
