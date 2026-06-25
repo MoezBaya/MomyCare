@@ -2,6 +2,7 @@ package com.example.MomyCare.controller;
 
 import com.example.MomyCare.dto.patiente.PatienteResponseDTO;
 import com.example.MomyCare.dto.patiente.PatienteSignupRequest;
+import com.example.MomyCare.dto.patiente.PatienteUpdateRequest;
 import com.example.MomyCare.service.PatienteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class PatienteController {
     @PreAuthorize("hasRole('PATIENTE')")
     public ResponseEntity<PatienteResponseDTO> updateMyProfile(
             Authentication authentication,
-            @Valid @RequestBody PatienteSignupRequest request
+            @Valid @RequestBody PatienteUpdateRequest request
     ) {
         return ResponseEntity.ok(patienteService.updateMyProfile(authentication, request));
     }
